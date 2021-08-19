@@ -86,12 +86,12 @@ process.options = cms.untracked.PSet(
 )
 
 # How many events to process
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(100) )
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(-1) )
 
 # Input EDM files
 process.source = cms.Source("PoolSource",
 	fileNames = cms.untracked.vstring([
-	'root://cms-xrd-global.cern.ch//store/group/dpg_trigger/comm_trigger/TriggerStudiesGroup/Scouting/Run3/ML_210512/SMS-T1qqqq_TuneCP5_14TeV-pythia8/ML_210512/210519_133149/0000/scouting_1.root'
+	'file:/eos/cms/store/user/dsperka/ttbar_scouting.root',
 	])
 )
 
@@ -115,7 +115,7 @@ else :
 
 # Define the services needed for the treemaker
 process.TFileService = cms.Service("TFileService",
-    fileName = cms.string("scout16_3.root")
+    fileName = cms.string("scout.root")
 )
 
 # Tree for the generator weights
@@ -130,17 +130,9 @@ process.gentree = cms.EDAnalyzer("LHEWeightsTreeMaker",
 #from DarkPhotonAnalysis.DimuonAnalysis2018.TriggerPaths_cfi import getL1Conf
 L1Info = ['L1_DoubleMu4p5er2p0_SQ_OS_Mass_Min7', 'L1_DoubleMu_12_5','L1_DoubleMu_15_7','L1_TripleMu_5_3_3','L1_TripleMu_5_5_3','L1_QuadMu0','L1_DoubleMu0er1p5_SQ_OS_dR_Max1p4','L1_DoubleMu4p5er2p0_SQ_OS_Mass7to18','L1_DoubleMu4_SQ_OS_dR_Max1p2','L1_SingleMu22','L1_DoubleMu0er1p4_SQ_OS_dR_Max1p4','L1_DoubleMu4p5_SQ_OS_dR_Max1p2','L1_DoubleMu4p5_SQ_OS','L1_DoubleMu0er1p5_SQ_dR_Max1p4','L1_DoubleMu0er2p0_SQ_dR_Max1p4','L1_DoubleMu0_SQ']
 # Make tree
-process.mmtree = cms.EDAnalyzer('ScoutingNanoAOD',
+process.events = cms.EDAnalyzer('ScoutingNanoAOD',
 
     	triggerresults   = cms.InputTag("TriggerResults", "", params.trigProcess),
-        doL1 = cms.bool(False),
-        triggerConfiguration = cms.PSet(
-    		hltResults            = cms.InputTag('TriggerResults','','HLT'),
-    		l1tResults            = cms.InputTag(''),
-    		daqPartitions         = cms.uint32(1),
-    		l1tIgnoreMaskAndPrescale = cms.bool(False),
-    		throw                 = cms.bool(False)
-  	),
 	ReadPrescalesFromFile = cms.bool( False ),
         AlgInputTag       = cms.InputTag("gtStage2Digis"),
         l1tAlgBlkInputTag = cms.InputTag("gtStage2Digis"),
@@ -153,8 +145,13 @@ process.mmtree = cms.EDAnalyzer('ScoutingNanoAOD',
 	pfcands          = cms.InputTag("hltScoutingPFPacker"),
 	pfjets           = cms.InputTag("hltScoutingPFPacker"),
         tracks           = cms.InputTag("hltScoutingTrackPacker"),
+        primaryVertices  = cms.InputTag("hltScoutingPrimaryVertexPacker","primaryVtx"),
+        displacedVertices  = cms.InputTag("hltScoutingMuonPacker","displacedVtx"),
+        pfMet            = cms.InputTag("hltScoutingPFPacker","pfMetPt"),
+        pfMetPhi         = cms.InputTag("hltScoutingPFPacker","pfMetPhi"),
+        rho         = cms.InputTag("hltScoutingPFPacker","rho"),
     	#pileupinfo       = cms.InputTag("addPileupInfo"),
     	#geneventinfo     = cms.InputTag("generator"),
 
 )
-process.p = cms.Path(                  process.mmtree)
+process.p = cms.Path(                  process.events)
