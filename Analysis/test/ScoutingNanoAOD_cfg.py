@@ -85,7 +85,7 @@ params.parseArguments()
 
 # Message Logger settings
 process.load("FWCore.MessageService.MessageLogger_cfi")
-process.MessageLogger.destinations = ["cout", "cerr"]
+#process.MessageLogger.destinations = ["cout", "cerr"]
 process.MessageLogger.cerr.FwkReport.reportEvery = 5
 
 # Set the process options -- Display summary at the end, enable unscheduled execution
@@ -178,6 +178,8 @@ process.events = cms.EDAnalyzer(
     rho=cms.InputTag("hltScoutingPFPacker", "rho"),
     # pileupinfo       = cms.InputTag("addPileupInfo"),
     # geneventinfo     = cms.InputTag("generator"),
+    genJet     = cms.InputTag('ak4GenJets'),
+    genpart    = cms.InputTag('genParticles'),
 )
 process.p = cms.Path(process.events)
 
