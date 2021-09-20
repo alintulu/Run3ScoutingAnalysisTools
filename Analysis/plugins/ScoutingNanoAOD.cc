@@ -401,8 +401,8 @@ ScoutingNanoAOD::ScoutingNanoAOD(const edm::ParameterSet& iConfig):
     rhoToken             (consumes<double>(iConfig.getParameter<edm::InputTag>("rho"))),
     pfMetToken             (consumes<double>(iConfig.getParameter<edm::InputTag>("pfMet"))),
     pfMetPhiToken             (consumes<double>(iConfig.getParameter<edm::InputTag>("pfMetPhi"))),
-    doL1                     (iConfig.existsAs<bool>("doL1")               ?    iConfig.getParameter<bool>  ("doL1")            : false),
-    genjetsToken            (consumes<std::vector<reco::GenJet> >           (iConfig.getParameter<edm::InputTag>("genJet")))
+    genjetsToken            (consumes<std::vector<reco::GenJet> >           (iConfig.getParameter<edm::InputTag>("genJet"))),
+    doL1                     (iConfig.existsAs<bool>("doL1")               ?    iConfig.getParameter<bool>  ("doL1")            : false)
 {
     usesResource("TFileService");
     if (doL1) {
