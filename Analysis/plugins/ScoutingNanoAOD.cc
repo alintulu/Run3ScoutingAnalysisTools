@@ -379,23 +379,13 @@ private:
     vector<Float_t> GenJet_pt_;
     vector<Float_t> GenJet_eta_;
     vector<Float_t> GenJet_phi_;
-    vector<Float_t> GenJet_m_;
     vector<Float_t> GenJet_jetArea_;
     vector<Float_t> GenJet_chargedHadronEnergy_;
     vector<Float_t> GenJet_neutralHadronEnergy_;
-    vector<Float_t> GenJet_photonEnergy_;
-    vector<Float_t> GenJet_electronEnergy_;
     vector<Float_t> GenJet_muonEnergy_;
-    vector<Float_t> GenJet_HFHadronEnergy_;
-    vector<Float_t> GenJet_HFEMEnergy_;
     vector<Int_t> GenJet_chargedHadronMultiplicity_;
     vector<Int_t> GenJet_neutralHadronMultiplicity_;
-    vector<Int_t> GenJet_photonMultiplicity_;
-    vector<Int_t> GenJet_electronMultiplicity_;
     vector<Int_t> GenJet_muonMultiplicity_;
-    vector<Int_t> GenJet_HFHadronMultiplicity_;
-    vector<Int_t> GenJet_HFEMMultiplicity_;
-    vector<Float_t> GenJet_HOEnergy_;
 
 };
 
@@ -654,23 +644,13 @@ ScoutingNanoAOD::ScoutingNanoAOD(const edm::ParameterSet& iConfig):
     tree->Branch("GenJet_pt", &GenJet_pt_ );
     tree->Branch("GenJet_eta", &GenJet_eta_ );
     tree->Branch("GenJet_phi", &GenJet_phi_ );
-    tree->Branch("GenJet_m", &GenJet_m_ );
     tree->Branch("GenJet_jetArea", &GenJet_jetArea_ );
     tree->Branch("GenJet_chargedHadronEnergy", &GenJet_chargedHadronEnergy_ );
     tree->Branch("GenJet_neutralHadronEnergy", &GenJet_neutralHadronEnergy_ );
-    tree->Branch("GenJet_photonEnergy", &GenJet_photonEnergy_ );
-    tree->Branch("GenJet_electronEnergy", &GenJet_electronEnergy_ );
     tree->Branch("GenJet_muonEnergy", &GenJet_muonEnergy_ );
-    tree->Branch("GenJet_HFHadronEnergy", &GenJet_HFHadronEnergy_ );
-    tree->Branch("GenJet_HFEMEnergy", &GenJet_HFEMEnergy_ );
     tree->Branch("GenJet_chargedHadronMultiplicity", &GenJet_chargedHadronMultiplicity_ );
     tree->Branch("GenJet_neutralHadronMultiplicity", &GenJet_neutralHadronMultiplicity_ );
-    tree->Branch("GenJet_photonMultiplicity", &GenJet_photonMultiplicity_ );
-    tree->Branch("GenJet_electronMultiplicity", &GenJet_electronMultiplicity_ );
     tree->Branch("GenJet_muonMultiplicity", &GenJet_muonMultiplicity_ );
-    tree->Branch("GenJet_HFHadronMultiplicity", &GenJet_HFHadronMultiplicity_ );
-    tree->Branch("GenJet_HFEMMultiplicity", &GenJet_HFEMMultiplicity_ );
-    tree->Branch("GenJet_HOEnergy", &GenJet_HOEnergy_ );
 
 }
 
@@ -968,23 +948,13 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
         GenJet_pt_.push_back(iter->pt());
         GenJet_eta_.push_back(iter->eta());
         GenJet_phi_.push_back(iter->phi());
-        GenJet_m_.push_back(iter->m());
         GenJet_jetArea_.push_back(iter->jetArea());
         GenJet_chargedHadronEnergy_.push_back(iter->chargedHadronEnergy());
         GenJet_neutralHadronEnergy_.push_back(iter->neutralHadronEnergy());
-        GenJet_photonEnergy_.push_back(iter->photonEnergy());
-        GenJet_electronEnergy_.push_back(iter->electronEnergy());
         GenJet_muonEnergy_.push_back(iter->muonEnergy());
-        GenJet_HFHadronEnergy_.push_back(iter->HFHadronEnergy());
-        GenJet_HFEMEnergy_.push_back(iter->HFEMEnergy());
         GenJet_chargedHadronMultiplicity_.push_back(iter->chargedHadronMultiplicity());
         GenJet_neutralHadronMultiplicity_.push_back(iter->neutralHadronMultiplicity());
-        GenJet_photonMultiplicity_.push_back(iter->photonMultiplicity());
-        GenJet_electronMultiplicity_.push_back(iter->electronMultiplicity());
         GenJet_muonMultiplicity_.push_back(iter->muonMultiplicity());
-        GenJet_HFHadronMultiplicity_.push_back(iter->HFHadronMultiplicity());
-        GenJet_HFEMMultiplicity_.push_back(iter->HFEMMultiplicity());
-        GenJet_HOEnergy_.push_back(iter->HOEnergy());
         n_genjet++;
     }
     cout << "\n";
@@ -1175,23 +1145,13 @@ void ScoutingNanoAOD::clearVars(){
     GenJet_pt_.clear();
     GenJet_eta_.clear();
     GenJet_phi_.clear();
-    GenJet_m_.clear();
     GenJet_jetArea_.clear();
     GenJet_chargedHadronEnergy_.clear();
     GenJet_neutralHadronEnergy_.clear();
-    GenJet_photonEnergy_.clear();
-    GenJet_electronEnergy_.clear();
     GenJet_muonEnergy_.clear();
-    GenJet_HFHadronEnergy_.clear();
-    GenJet_HFEMEnergy_.clear();
     GenJet_chargedHadronMultiplicity_.clear();
     GenJet_neutralHadronMultiplicity_.clear();
-    GenJet_photonMultiplicity_.clear();
-    GenJet_electronMultiplicity_.clear();
     GenJet_muonMultiplicity_.clear();
-    GenJet_HFHadronMultiplicity_.clear();
-    GenJet_HFEMMultiplicity_.clear();
-    GenJet_HOEnergy_.clear();
     
 }
 
