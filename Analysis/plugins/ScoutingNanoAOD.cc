@@ -425,7 +425,7 @@ ScoutingNanoAOD::ScoutingNanoAOD(const edm::ParameterSet& iConfig):
 
     // Event weights
     tree->Branch("lumSec"		, &lumSec			 , "lumSec/i" );
-    tree->Branch("runn"			, &run				 , "run/i" );
+    tree->Branch("run"			, &run				 , "run/i" );
     //tree->Branch("nvtx"			, &nvtx				 , "nvtx/i" );
     
     // Triggers
@@ -941,10 +941,8 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
         n_displacedvtx++;
     }
 
-    cout << "Starting GenJet\n";
     n_genjet = 0;
     for (auto iter = genjetsH->begin(); iter != genjetsH->end(); ++iter) {
-        cout << n_genjet << " ";
         GenJet_pt_.push_back(iter->pt());
         GenJet_eta_.push_back(iter->eta());
         GenJet_phi_.push_back(iter->phi());
@@ -957,7 +955,6 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
         GenJet_muonMultiplicity_.push_back(iter->muonMultiplicity());
         n_genjet++;
     }
-    cout << "\n";
 
 
     tree->Fill();	
