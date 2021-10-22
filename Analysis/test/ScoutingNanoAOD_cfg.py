@@ -91,7 +91,7 @@ process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(10) )
 # Input EDM files
 process.source = cms.Source("PoolSource",
 	fileNames = cms.untracked.vstring([
-	'file:/eos/user/a/adlintul/scouting/particlenet/particle_features/edm/hlt_PN_numEvent100.root'
+	'file:/eos/user/a/adlintul/scouting/particlenet/particle_features/reHLT/edm/scouting_75.root'
 	])
 )
 
@@ -115,7 +115,7 @@ else :
 
 # Define the services needed for the treemaker
 process.TFileService = cms.Service("TFileService",
-    fileName = cms.string("file:/eos/user/a/adlintul/scouting/particlenet/particle_features/nano/hlt_PN_numEvent100.root")
+    fileName = cms.string("file:/eos/user/a/adlintul/scouting/particlenet/particle_features/reHLT/nano/scouting_75.root")
 )
 
 # Tree for the generator weights
@@ -154,7 +154,8 @@ process.mmtree = cms.EDAnalyzer('ScoutingNanoAOD',
         pfjets           = cms.InputTag("hltScoutingPFPacker"),
         tracks           = cms.InputTag("hltScoutingTrackPacker"),
         pfcandsParticleNet = cms.InputTag("hltScoutingPFPacker"),
-        genpart          = cms.InputTag('genParticles')
+        genpart          = cms.InputTag('packedGenParticles')
+        #genpart          = cms.InputTag('genParticles')
     	#pileupinfo       = cms.InputTag("addPileupInfo"),
     	#geneventinfo     = cms.InputTag("generator"),
 

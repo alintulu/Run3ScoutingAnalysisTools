@@ -13,8 +13,8 @@
 
 using namespace deepntuples;
 
-std::pair<FatJetMatching::FatJetLabel, const reco::GenParticle*> FatJetMatching::flavorLabel(const fastjet::PseudoJet jet,
-    const reco::GenParticleCollection& genParticles, double distR) {
+std::pair<FatJetMatching::FatJetLabel, const pat::PackedGenParticle*> FatJetMatching::flavorLabel(const fastjet::PseudoJet jet,
+    const pat::PackedGenParticleCollection& genParticles, double distR) {
 
   processed_.clear();
 
@@ -73,38 +73,39 @@ void FatJetMatching::printGenInfoHeader() const {
       << left << "  " << setw(10) << "Mothers" << " " << setw(30) << "Daughters" << endl;
 }
 
-void FatJetMatching::printGenParticleInfo(const reco::GenParticle* genParticle, const int idx) const {
+void FatJetMatching::printGenParticleInfo(const pat::PackedGenParticle* genParticle, const int idx) const {
   using namespace std;
   cout  << right << setw(3) << genParticle->status();
   cout  << right << setw(3) << idx << " " << setw(10) << genParticle->pdgId() << "  ";
   cout  << right << "  " << setw(3) << genParticle->charge() << "  " << TString::Format("%10.3g", genParticle->mass() < 1e-5 ? 0 : genParticle->mass());
   cout  << left << setw(50) << TString::Format("  (E=%6.4g pT=%6.4g eta=%7.3g phi=%7.3g)", genParticle->energy(), genParticle->pt(), genParticle->eta(), genParticle->phi());
 
-  TString                     mothers;
-  for (unsigned int iMom = 0; iMom < genParticle->numberOfMothers(); ++iMom) {
-    if (mothers.Length())     mothers        += ",";
-    mothers   += genParticle->motherRef(iMom).key();
-  }
-  cout << "  " << setw(10) << mothers;
-  TString                     daughters;
-  for (unsigned int iDau = 0; iDau < genParticle->numberOfDaughters(); ++iDau) {
-    if (daughters.Length())   daughters      += ",";
-    daughters += genParticle->daughterRef(iDau).key();
-  }
-  cout << " " << setw(30) << daughters << endl;
+  // TString                     mothers;
+  // for (unsigned int iMom = 0; iMom < genParticle->numberOfMothers(); ++iMom) {
+  //   if (mothers.Length())     mothers        += ",";
+  //   mothers   += genParticle->mother(iMom)->key();
+  // }
+  // cout << "  " << setw(10) << mothers;
+  // TString                     daughters;
+  // for (unsigned int iDau = 0; iDau < genParticle->numberOfDaughters(); ++iDau) {
+  //   if (daughters.Length())   daughters      += ",";
+  //   daughters += genParticle->daughter(iDau)->key();
+  // }
+  // cout << " " << setw(30) << daughters << endl;
 }
 
-const reco::GenParticle* FatJetMatching::getFinal(const reco::GenParticle* particle) {
+const pat::PackedGenParticle* FatJetMatching::getFinal(const pat::PackedGenParticle* particle) {
   // will mark intermediate particles as processed
   if (!particle) return nullptr;
   processed_.insert(particle);
-  const reco::GenParticle *final = particle;
+  const pat::PackedGenParticle *final = particle;
 
   while (final->numberOfDaughters()) {
-    const reco::GenParticle *chain = nullptr;
+    const pat::PackedGenParticle *chain = nullptr;
     for (unsigned idau = 0; idau < final->numberOfDaughters(); ++idau){
-      if (final->daughter(idau)->pdgId() == particle->pdgId()) {
-        chain = dynamic_cast<const reco::GenParticle*>(final->daughter(idau));
+      const auto *dau = dynamic_cast<const pat::PackedGenParticle*>(final->daughter(idau));
+      if (dau->pdgId() == particle->pdgId()) {
+        chain = dynamic_cast<const pat::PackedGenParticle*>(dau);
         processed_.insert(chain);
         break;
       }
@@ -115,21 +116,21 @@ const reco::GenParticle* FatJetMatching::getFinal(const reco::GenParticle* parti
   return final;
 }
 
-bool FatJetMatching::isHadronic(const reco::GenParticle* particle) const {
+bool FatJetMatching::isHadronic(const pat::PackedGenParticle* particle) const {
   // particle needs to be the final version before decay
   if (!particle) throw std::invalid_argument("[FatJetMatching::isHadronic()] Null particle!");
-  for(const auto &dau : particle->daughterRefVector()){
-    auto pdgid = std::abs(dau->pdgId());
+  for (unsigned idau = 0; idau < particle->numberOfDaughters(); ++idau){
+    auto pdgid = std::abs(particle->daughter(idau)->pdgId());
     if (pdgid >= ParticleID::p_d && pdgid <= ParticleID::p_b) return true;
   }
   return false;
 }
 
-std::vector<const reco::GenParticle*> FatJetMatching::getDaughterQuarks(const reco::GenParticle* particle) {
-  std::vector<const reco::GenParticle*> daughters;
+std::vector<const pat::PackedGenParticle*> FatJetMatching::getDaughterQuarks(const pat::PackedGenParticle* particle) {
+  std::vector<const pat::PackedGenParticle*> daughters;
 
   for (unsigned i=0; i<particle->numberOfDaughters(); ++i){
-    const auto *dau = dynamic_cast<const reco::GenParticle*>(particle->daughter(i));
+    const auto *dau = dynamic_cast<const pat::PackedGenParticle*>(particle->daughter(i));
     auto pdgid = std::abs(dau->pdgId());
     if (pdgid >= ParticleID::p_d && pdgid <= ParticleID::p_b){
       daughters.push_back(dau);
@@ -139,19 +140,20 @@ std::vector<const reco::GenParticle*> FatJetMatching::getDaughterQuarks(const re
   return daughters;
 }
 
-std::pair<FatJetMatching::FatJetLabel,const reco::GenParticle*> FatJetMatching::top_label(const fastjet::PseudoJet jet, const reco::GenParticle *parton, double distR)
+std::pair<FatJetMatching::FatJetLabel,const pat::PackedGenParticle*> FatJetMatching::top_label(const fastjet::PseudoJet jet, const pat::PackedGenParticle *parton, double distR)
 {
 
   // top
   auto top = getFinal(parton);
   // find the W and test if it's hadronic
-  const reco::GenParticle *w_from_top = nullptr, *b_from_top = nullptr;
-  for (const auto &dau : top->daughterRefVector()){
+  const pat::PackedGenParticle *w_from_top = nullptr, *b_from_top = nullptr;
+  for (unsigned idau = 0; idau < top->numberOfDaughters(); ++idau){
+    const auto *dau = dynamic_cast<const pat::PackedGenParticle*>(top->daughter(idau));
     if (std::abs(dau->pdgId()) == ParticleID::p_Wplus){
       w_from_top = getFinal(&(*dau));
     }else if (std::abs(dau->pdgId()) <= ParticleID::p_b){
       // ! use <= p_b ! -- can also have charms etc.
-      b_from_top = dynamic_cast<const reco::GenParticle*>(&(*dau));
+      b_from_top = dynamic_cast<const pat::PackedGenParticle*>(&(*dau));
     }
   }
   if (!w_from_top || !b_from_top) throw std::logic_error("[FatJetMatching::top_label] Cannot find b or W from top decay!");
@@ -219,7 +221,7 @@ std::pair<FatJetMatching::FatJetLabel,const reco::GenParticle*> FatJetMatching::
 
 }
 
-std::pair<FatJetMatching::FatJetLabel,const reco::GenParticle*> FatJetMatching::w_label(const fastjet::PseudoJet jet, const reco::GenParticle *parton, double distR)
+std::pair<FatJetMatching::FatJetLabel,const pat::PackedGenParticle*> FatJetMatching::w_label(const fastjet::PseudoJet jet, const pat::PackedGenParticle *parton, double distR)
 {
 
   auto w = getFinal(parton);
@@ -267,7 +269,7 @@ std::pair<FatJetMatching::FatJetLabel,const reco::GenParticle*> FatJetMatching::
 
 }
 
-std::pair<FatJetMatching::FatJetLabel,const reco::GenParticle*> FatJetMatching::z_label(const fastjet::PseudoJet jet, const reco::GenParticle *parton, double distR)
+std::pair<FatJetMatching::FatJetLabel,const pat::PackedGenParticle*> FatJetMatching::z_label(const fastjet::PseudoJet jet, const pat::PackedGenParticle *parton, double distR)
 {
 
   auto z = getFinal(parton);
@@ -316,7 +318,7 @@ std::pair<FatJetMatching::FatJetLabel,const reco::GenParticle*> FatJetMatching::
 
 }
 
-std::pair<FatJetMatching::FatJetLabel,const reco::GenParticle*> FatJetMatching::higgs_label(const fastjet::PseudoJet jet, const reco::GenParticle *parton, double distR)
+std::pair<FatJetMatching::FatJetLabel,const pat::PackedGenParticle*> FatJetMatching::higgs_label(const fastjet::PseudoJet jet, const pat::PackedGenParticle *parton, double distR)
 {
 
   auto higgs = getFinal(parton);
@@ -333,8 +335,8 @@ std::pair<FatJetMatching::FatJetLabel,const reco::GenParticle*> FatJetMatching::
     is_hVV = true;
   }else {
     // e.g., h->VV*
-    for (const auto &p : higgs->daughterRefVector()){
-      auto pdgid = std::abs(p->pdgId());
+    for (unsigned idau = 0; idau < higgs->numberOfDaughters(); ++idau) {
+      auto pdgid = std::abs(higgs->daughter(idau)->pdgId());
       if (pdgid == ParticleID::p_Wplus || pdgid == ParticleID::p_Z0){
         is_hVV = true;
         break;
@@ -344,10 +346,10 @@ std::pair<FatJetMatching::FatJetLabel,const reco::GenParticle*> FatJetMatching::
 
   if (is_hVV){
     // h->WW or h->ZZ
-    std::vector<const reco::GenParticle*> hVV_daus;
+    std::vector<const pat::PackedGenParticle*> hVV_daus;
     for (unsigned idau=0; idau<higgs->numberOfDaughters(); ++idau){
-      const auto *dau = dynamic_cast<const reco::GenParticle*>(higgs->daughter(idau));
-      auto pdgid = std::abs(higgs->daughter(idau)->pdgId());
+      const auto *dau = dynamic_cast<const pat::PackedGenParticle*>(higgs->daughter(idau));
+      auto pdgid = std::abs(dau->pdgId());
       if (pdgid >= ParticleID::p_d && pdgid <= ParticleID::p_b){
         hVV_daus.push_back(dau);
       }else{
@@ -412,9 +414,9 @@ std::pair<FatJetMatching::FatJetLabel,const reco::GenParticle*> FatJetMatching::
     }
   }else {
     // test h->tautau
-    std::vector<const reco::GenParticle*> taus;
+    std::vector<const pat::PackedGenParticle*> taus;
     for (unsigned i=0; i<higgs->numberOfDaughters(); ++i){
-      const auto *dau = dynamic_cast<const reco::GenParticle*>(higgs->daughter(i));
+      const auto *dau = dynamic_cast<const pat::PackedGenParticle*>(higgs->daughter(i));
       if (std::abs(dau->pdgId()) == ParticleID::p_tauminus){
         taus.push_back(dau);
       }
@@ -430,9 +432,9 @@ std::pair<FatJetMatching::FatJetLabel,const reco::GenParticle*> FatJetMatching::
         cout << "deltaR(jet, tau2)    : " << dr_tau2 << endl;
       }
 
-      auto isHadronicTau = [](const reco::GenParticle* tau){
-        for (const auto &dau : tau->daughterRefVector()){
-          auto pdgid = std::abs(dau->pdgId());
+      auto isHadronicTau = [](const pat::PackedGenParticle* tau){
+        for (unsigned idau=0; idau < tau->numberOfDaughters(); ++idau){
+          auto pdgid = std::abs(tau->daughter(idau)->pdgId());
           if (pdgid==ParticleID::p_eminus || pdgid==ParticleID::p_muminus){
             return false;
           }
@@ -454,7 +456,7 @@ std::pair<FatJetMatching::FatJetLabel,const reco::GenParticle*> FatJetMatching::
 
 }
 
-std::pair<FatJetMatching::FatJetLabel,const reco::GenParticle*> FatJetMatching::qcd_label(const fastjet::PseudoJet jet)
+std::pair<FatJetMatching::FatJetLabel,const pat::PackedGenParticle*> FatJetMatching::qcd_label(const fastjet::PseudoJet jet)
 {
 //   auto n_bHadrons = jet.jetFlavourInfo().getbHadrons().size();
 //   auto n_cHadrons = jet.jetFlavourInfo().getcHadrons().size();

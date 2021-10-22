@@ -109,6 +109,8 @@
 
 #include "Run3ScoutingAnalysisTools/Analysis/interface/FatJetMatching.h"
 
+#include "DataFormats/PatCandidates/interface/PackedGenParticle.h"
+
 using namespace std;
 using namespace deepntuples;
 
@@ -134,7 +136,8 @@ private:
   virtual void clearVars();
   const edm::InputTag triggerResultsTag;
   const edm::EDGetTokenT<std::vector<Run3ScoutingParticleParticleNet> >  	pfcandsParticleNetToken;
-  const edm::EDGetTokenT<reco::GenParticleCollection>      genpartsToken;
+  //const edm::EDGetTokenT<reco::GenParticleCollection>      genpartsToken;
+  const edm::EDGetTokenT<pat::PackedGenParticleCollection>      genpartsToken;
 
   std::vector<std::string> triggerPathsVector;
   std::map<std::string, int> triggerPathsMap;
@@ -201,7 +204,8 @@ private:
 
 ScoutingNanoAOD::ScoutingNanoAOD(const edm::ParameterSet& iConfig):
   pfcandsParticleNetToken  (consumes<std::vector<Run3ScoutingParticleParticleNet> > (iConfig.getParameter<edm::InputTag>("pfcandsParticleNet"))),
-  genpartsToken            (consumes<reco::GenParticleCollection>         (iConfig.getParameter<edm::InputTag>("genpart")))
+  //genpartsToken            (consumes<reco::GenParticleCollection>         (iConfig.getParameter<edm::InputTag>("genpart")))
+  genpartsToken            (consumes<pat::PackedGenParticleCollection>         (iConfig.getParameter<edm::InputTag>("genpart")))
 {
   usesResource("TFileService");
   if (doL1) {
@@ -275,9 +279,9 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
   Handle<vector<Run3ScoutingParticleParticleNet> > pfcandsParticleNetH;
   iEvent.getByToken(pfcandsParticleNetToken, pfcandsParticleNetH);
 
-  Handle<GenParticleCollection> genpartH;
+  Handle<pat::PackedGenParticleCollection> genpartH;
   iEvent.getByToken(genpartsToken, genpartH);
-  auto genParticles = dynamic_cast<const reco::GenParticleCollection&> (*genpartH);
+  auto genParticles = dynamic_cast<const pat::PackedGenParticleCollection&> (*genpartH);
 
   // Create AK8 Jet
   vector<PseudoJet> fj_part;
