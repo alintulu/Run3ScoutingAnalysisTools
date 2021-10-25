@@ -90,9 +90,7 @@ process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(10) )
 
 # Input EDM files
 process.source = cms.Source("PoolSource",
-	fileNames = cms.untracked.vstring([
-	'file:/eos/user/a/adlintul/scouting/particlenet/particle_features/reHLT/edm/scouting_75.root'
-	])
+	fileNames = cms.untracked.vstring(params.inputFiles)
 )
 
 # Load the standard set of configuration modules
@@ -115,7 +113,7 @@ else :
 
 # Define the services needed for the treemaker
 process.TFileService = cms.Service("TFileService",
-    fileName = cms.string("file:/eos/user/a/adlintul/scouting/particlenet/particle_features/reHLT/nano/scouting_75.root")
+    fileName = cms.string(params.outputFile)
 )
 
 # Tree for the generator weights
