@@ -184,6 +184,12 @@ private:
   vector<Float16_t> pfcand_btagPtRatio;
   vector<Float16_t> pfcand_btagPParRatio;
 
+  //Jet kinematics
+  float fj_pt;
+  float fj_eta;
+  float fj_phi;
+  float fj_mass;
+
   //ParticleNet Jet label
   int label_Top_bcq;
   int label_Top_bqq;
@@ -250,6 +256,11 @@ ScoutingNanoAOD::ScoutingNanoAOD(const edm::ParameterSet& iConfig):
   tree->Branch("pfcand_btagEtaRel", &pfcand_btagEtaRel);
   tree->Branch("pfcand_btagPtRatio", &pfcand_btagPtRatio);
   tree->Branch("pfcand_btagPParRatio", &pfcand_btagPParRatio);
+
+  tree->Branch("fj_pt", &fj_pt);
+  tree->Branch("fj_eta", &fj_eta);
+  tree->Branch("fj_phi", &fj_phi);
+  tree->Branch("fj_mass", &fj_mass);
 
   tree->Branch("label_Top_bcq", &label_Top_bcq);
   tree->Branch("label_Top_bqq", &label_Top_bqq);
@@ -328,8 +339,10 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
       TVector3 track_mom3(trk_px, trk_py, trk_pz);
       double track_mag = sqrt(trk_px * trk_px + trk_py * trk_py + trk_pz * trk_pz);
 
+      float reco_cand_p = reco_cand->pt() * cosh(reco_cand->eta());
+
       pfcand_pt_log_nopuppi.push_back(log(reco_cand->pt()));
-      pfcand_e_log_nopuppi.push_back(log(sqrt(reco_cand->pt()*reco_cand->pt() + reco_cand->m()*reco_cand->m())));
+      pfcand_e_log_nopuppi.push_back(log(sqrt(reco_cand_p*reco_cand_p + reco_cand->m()*reco_cand->m())));
       pfcand_etarel.push_back(etasign * (reco_cand->eta() - j.eta()));
       pfcand_phirel.push_back(deltaPhi(reco_cand->phi(), j.phi()));
       pfcand_abseta.push_back(abs(reco_cand->eta()));
@@ -349,6 +362,11 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
       pfcand_btagPtRatio.push_back(track_mom3.Perp(jet_dir3) / track_mag);
       pfcand_btagPParRatio.push_back(jet_dir.Dot(track_mom) / track_mag);
     }
+
+    fj_pt = j.pt();
+    fj_eta = j.eta();
+    fj_phi = j.phi();
+    fj_mass = j.m();
 
     // Match AK8 jet to truth label
     auto ak8_label = ak8_match.flavorLabel(j, genParticles, 0.8);
