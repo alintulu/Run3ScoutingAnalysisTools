@@ -45,7 +45,7 @@ PYTHON_CFG=$3
 
 cmsDriver.py \
     reHLT \
-    --python_filename PYTHON_CFG \
+    --python_filename $PYTHON_CFG \
     --eventcontent RAWMINIAODSIM \
     --customise HLTrigger/Configuration/customizeHLTforPatatrack.customizeHLTforPatatrackTriplets \
     --filein file:$INPUT_FILE \
@@ -60,7 +60,7 @@ cmsDriver.py \
 
 5. run the file
 
-source reHLT.py file:/eos/cms/store/group/dpg_trigger/comm_trigger/TriggerStudiesGroup/Scouting/Run3/ML_210512/GluGluHToBB_M125_masseffects_14TeV_TuneCP5_powheg_pythia8/ML_210512/210602_090726/0000/scouting_75.root file:/eos/user/a/adlintul/scouting/particlenet/particle_features/reHLT/edm/scouting_75.root scoutingPF_default.py
+source reHLT.sh file:/eos/cms/store/group/dpg_trigger/comm_trigger/TriggerStudiesGroup/Scouting/Run3/ML_210512/GluGluHToBB_M125_masseffects_14TeV_TuneCP5_powheg_pythia8/ML_210512/210602_090726/0000/scouting_75.root file:/eos/user/a/adlintul/scouting/particlenet/particle_features/reHLT/edm/scouting_75.root scouting_GluGluHToBB.py
 ```
 
 ```diff
@@ -68,6 +68,12 @@ source reHLT.py file:/eos/cms/store/group/dpg_trigger/comm_trigger/TriggerStudie
 
 - process = cms.Process('HLT',Run3)
 + process = cms.Process('reHLT',Run3)
+```
+
+```bash
+7. run script
+
+cmsRun scouting_GluGluHToBB.py
 ```
 
 ## Create ntuples
