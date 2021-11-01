@@ -35,22 +35,27 @@ std::pair<FatJetMatching::FatJetLabel, const pat::PackedGenParticle*> FatJetMatc
     processed_.insert(gp);
 
     auto pdgid = std::abs(gp->pdgId());
+    std::cout << "FlavourLabel:: pdgId: " << pdgid << std::endl;
     if (pdgid == ParticleID::p_t){
+      std::cout << "FlavourLabel:: particle is top" << std::endl;
       auto result = top_label(jet, gp, distR);
       if (result.first != FatJetLabel::Invalid){
         return result;
       }
     }else if (pdgid == ParticleID::p_h0){
+      std::cout << "FlavourLabel:: particle is higgs" << std::endl;
       auto result = higgs_label(jet, gp, distR);
       if (result.first != FatJetLabel::Invalid){
         return result;
       }
     }else if (pdgid == ParticleID::p_Wplus){
+      std::cout << "FlavourLabel:: particle is Wplus" << std::endl;
       auto result = w_label(jet, gp, distR);
       if (result.first != FatJetLabel::Invalid){
         return result;
       }
     }else if (pdgid == ParticleID::p_Z0){
+      std::cout << "FlavourLabel:: particle is Z" << std::endl;
       auto result = z_label(jet, gp, distR);
       if (result.first != FatJetLabel::Invalid){
         return result;

@@ -294,6 +294,12 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
   iEvent.getByToken(genpartsToken, genpartH);
   auto genParticles = dynamic_cast<const pat::PackedGenParticleCollection&> (*genpartH);
 
+  for (unsigned ipart = 0; ipart<genParticles.size(); ++ipart){
+    const auto *gp = &genParticles[ipart];
+    std::cout << gp->pdgId() << " ";
+  }
+  std::cout << "\n";
+
   // Create AK8 Jet
   vector<PseudoJet> fj_part;
   int pfcand_i = 0;

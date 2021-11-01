@@ -1,10 +1,8 @@
-This repository creates jet-level ntuples for training ParticleNet
-
-# How to run
+This repository creates jet-level ntuples for training ParticleNet used at the "Jet tagging using the Run3 Scouting data" hackathon (8th-11th Nov 2021).
 
 ## Download and compile code
 
-The code runs on `CMSSW_11_2_1_Patatrack`
+The code was develop in `CMSSW_11_2_1_Patatrack`
 
 ```
 1. prepare CMSSW release
@@ -22,7 +20,8 @@ Changes were made to the HLT Scouting producer, hence we need to re-run the Scou
 2. download the updated CMSSW code
 
 git remote add alintulu git@github.com:alintulu/cmssw.git
-git checkout alintulu CMSSW_11_2_1_Patatrack-ScoutPNet
+git fetch alintulu
+git checkout alintulu/CMSSW_11_2_1_Patatrack-ScoutPNet
 
 3. clone this repository and compile
 
