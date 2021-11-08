@@ -259,6 +259,8 @@ ScoutingNanoAOD::ScoutingNanoAOD(const edm::ParameterSet& iConfig):
   tree->Branch("fj_eta", &fj_eta);
   tree->Branch("fj_phi", &fj_phi);
   tree->Branch("fj_mass", &fj_mass);
+  tree->Branch("fj_msd", &fj_msd);
+  tree->Branch("fj_n2b1", &fj_n2b1);
 
   tree->Branch("label_Top_bcq", &label_Top_bcq);
   tree->Branch("label_Top_bqq", &label_Top_bqq);
@@ -307,6 +309,12 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
   JetDefinition ak8_def = JetDefinition(antikt_algorithm, 0.8);
   fastjet::GhostedAreaSpec area_spec(5.0,1,0.01);
   fastjet::AreaDefinition area_def(fastjet::active_area, area_spec);
+
+  // Substructure
+  double sd_z_cut = 0.10;
+  double sd_beta = 0;
+  SoftDrop sd_groomer = SoftDrop(sd_z_cut, sd_beta, 1.0);
+  EnergyCorrelatorN2 N2 = EnergyCorrelatorN2(1.0);
 
   ClusterSequenceArea ak8_cs(fj_part, ak8_def, area_def);
   vector<PseudoJet> ak8_jets = sorted_by_pt(ak8_cs.inclusive_jets(170.0));
@@ -371,7 +379,11 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
     fj_eta = j.eta();
     fj_phi = j.phi();
     fj_mass = j.m();
-    
+
+    PseudoJet sd_ak8 = sd_groomer(j);
+    fj_msd = sd_ak8.m();
+    fj_n2b1 = N2(sd_ak8);
+
     label_Top_bcq = (ak8_label.first == FatJetMatching::Top_bcq);
     label_Top_bqq = (ak8_label.first == FatJetMatching::Top_bqq);
     label_Top_bc = (ak8_label.first == FatJetMatching::Top_bc);
