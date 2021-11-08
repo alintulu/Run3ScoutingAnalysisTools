@@ -186,6 +186,8 @@ private:
   float fj_eta;
   float fj_phi;
   float fj_mass;
+  float fj_msd;
+  float fj_n2b1;
 
   //ParticleNet Jet label
   int label_Top_bcq;
