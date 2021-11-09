@@ -206,6 +206,9 @@ private:
   int label_H_qq;
   int label_QCD_all;
 
+  //Event number
+  int event_no;
+
   bool isQCD;
 };
 
@@ -279,6 +282,8 @@ ScoutingNanoAOD::ScoutingNanoAOD(const edm::ParameterSet& iConfig):
   tree->Branch("label_H_tautau", &label_H_tautau);
   tree->Branch("label_H_qq", &label_H_qq);
   tree->Branch("label_QCD_all", &label_QCD_all);
+
+  tree->Branch("event_no", &event_no);
 }
 
 ScoutingNanoAOD::~ScoutingNanoAOD() {
@@ -401,6 +406,8 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
     label_H_tautau = (ak8_label.first == FatJetMatching::H_tautau);
     label_H_qq = (ak8_label.first == FatJetMatching::H_qq);
     label_QCD_all = (ak8_label.first == FatJetMatching::QCD_all);
+
+    event_no = iEvent.id().event();
 
     tree->Fill();	
     clearVars();
