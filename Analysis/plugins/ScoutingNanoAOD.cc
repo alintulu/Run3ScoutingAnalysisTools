@@ -320,7 +320,7 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
   // Substructure
   double sd_z_cut = 0.10;
   double sd_beta = 0;
-  SoftDrop sd_groomer = SoftDrop(sd_z_cut, sd_beta, 1.0);
+  SoftDrop sd_groomer = SoftDrop(sd_beta, sd_z_cut, 0.8);
   EnergyCorrelatorN2 N2 = EnergyCorrelatorN2(1.0);
 
   ClusterSequenceArea ak8_cs(fj_part, ak8_def, area_def);
