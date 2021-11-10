@@ -165,6 +165,8 @@ process.mmtree = cms.EDAnalyzer('ScoutingNanoAOD',
         tracks           = cms.InputTag("hltScoutingTrackPacker"),
         pfcandsParticleNet = cms.InputTag("hltScoutingPFPacker"),
         genpart          = cms.InputTag("prunedGenParticles"),
+        # NEW
+        slimjet          = cms.InputTag("slimmedJets"),
         isQCD            = cms.bool( params.isQCD )
         # genParticles = cms.InputTag("genParticlesMerged")
     	#pileupinfo       = cms.InputTag("addPileupInfo"),

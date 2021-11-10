@@ -106,7 +106,7 @@ private:
 //   }
 
 private:
-  double jetR_ = 0.8;
+  double jetR_ = 0.4;  //0.8; //Now slim
   bool   requiresQuarksContained_ = true;
 
   bool debug_ = false;

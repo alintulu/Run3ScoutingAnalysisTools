@@ -106,13 +106,14 @@
 #include "fastjet/contrib/SoftKiller.hh"
 
 #include "DataFormats/BTauReco/interface/TaggingVariable.h"
+#include "DataFormats/PatCandidates/interface/Jet.h"
 
 #include "Run3ScoutingAnalysisTools/Analysis/interface/FatJetMatching.h"
 
 using namespace std;
 using namespace deepntuples;
 
-FatJetMatching ak8_match;
+FatJetMatching ak4_match;
 
 class ScoutingNanoAOD : public edm::one::EDAnalyzer<edm::one::SharedResources, edm::one::WatchRuns, edm::one::WatchLuminosityBlocks> {
 public:
@@ -135,6 +136,8 @@ private:
   const edm::InputTag triggerResultsTag;
   const edm::EDGetTokenT<std::vector<Run3ScoutingParticleParticleNet> >  	pfcandsParticleNetToken;
   const edm::EDGetTokenT<reco::GenParticleCollection>      genpartsToken;
+  // NEW
+  const edm::EDGetTokenT<std::vector<pat::Jet> >     slimjetToken;
 
   std::vector<std::string> triggerPathsVector;
   std::map<std::string, int> triggerPathsMap;
@@ -210,11 +213,14 @@ private:
   int label_QCD_all;
 
   bool isQCD;
+
+  int event_no;
 };
 
 ScoutingNanoAOD::ScoutingNanoAOD(const edm::ParameterSet& iConfig):
   pfcandsParticleNetToken  (consumes<std::vector<Run3ScoutingParticleParticleNet> > (iConfig.getParameter<edm::InputTag>("pfcandsParticleNet"))),
   genpartsToken            (consumes<reco::GenParticleCollection> (iConfig.getParameter<edm::InputTag>("genpart"))),
+  slimjetToken             (consumes<std::vector<pat::Jet> > (iConfig.getParameter<edm::InputTag>("slimjet"))),
   isQCD                    (iConfig.existsAs<bool>("isQCD") ? iConfig.getParameter<bool>("isQCD") : false)
 {
   usesResource("TFileService");
@@ -268,7 +274,7 @@ ScoutingNanoAOD::ScoutingNanoAOD(const edm::ParameterSet& iConfig):
   tree->Branch("fj_nc", &fj_nc);
   tree->Branch("fj_nb", &fj_nb);
   tree->Branch("fj_partflav", &fj_partflav);
-  tree->Branch("fj_hadrflav", &fh_hadrflav);
+  tree->Branch("fj_hadrflav", &fj_hadrflav);
 
   tree->Branch("label_Top_bcq", &label_Top_bcq);
   tree->Branch("label_Top_bqq", &label_Top_bqq);
@@ -285,6 +291,8 @@ ScoutingNanoAOD::ScoutingNanoAOD(const edm::ParameterSet& iConfig):
   tree->Branch("label_H_tautau", &label_H_tautau);
   tree->Branch("label_H_qq", &label_H_qq);
   tree->Branch("label_QCD_all", &label_QCD_all);
+
+  tree->Branch("event_no", &event_no);
 }
 
 ScoutingNanoAOD::~ScoutingNanoAOD() {
@@ -294,6 +302,7 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
   using namespace edm;
   using namespace std;
   using namespace reco;
+  using namespace pat;  // new
   using namespace fastjet;
   using namespace fastjet::contrib;
 
@@ -303,7 +312,10 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
   Handle<GenParticleCollection> genpartH;
   iEvent.getByToken(genpartsToken, genpartH);
 
-  // Create AK8 Jet
+  Handle<vector<pat::Jet> > slimjetH;
+  iEvent.getByToken(slimjetToken, slimjetH);
+
+  // Create AK4 Jets
   vector<PseudoJet> fj_part;
   fj_part.reserve(pfcandsParticleNetH->size());
   int pfcand_i = 0;
@@ -314,21 +326,71 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
     pfcand_i++;
   }
 
-  JetDefinition ak8_def = JetDefinition(antikt_algorithm, 0.8);
+  JetDefinition ak4_def = JetDefinition(antikt_algorithm, 0.4);  // was 0.8
   fastjet::GhostedAreaSpec area_spec(5.0,1,0.01);
   fastjet::AreaDefinition area_def(fastjet::active_area, area_spec);
 
-  ClusterSequenceArea ak8_cs(fj_part, ak8_def, area_def);
-  vector<PseudoJet> ak8_jets = sorted_by_pt(ak8_cs.inclusive_jets(170.0));
+  ClusterSequenceArea ak4_cs(fj_part, ak4_def, area_def);
+  vector<PseudoJet> ak4_jets = sorted_by_pt(ak4_cs.inclusive_jets(15.0));
 
-  cout << "Number of jets: " << ak8_jets.size() << endl;
+  cout << "Number of jets: " << ak4_jets.size() << endl;
 
-  for(auto &j: ak8_jets) {
 
-    // Match AK8 jet to truth label
-    auto ak8_label = ak8_match.flavorLabel(j, *genpartH, 0.8);
-    cout << "Label: " << ak8_label.first << endl;
-    if ((ak8_label.first == FatJetMatching::QCD_all && !isQCD) || (ak8_label.first != FatJetMatching::QCD_all && isQCD)) continue;
+  // NEW:  Match slimjets w/ ak4_jets, record pdgID info
+  // Note:  must do before main loop to avoid previous bug
+  // outline:  (nc, nb, parton flavor, partflav, hadrflav)
+  // - create pairList (vector of int vectors):  All dRs < 0.4 of all possible (slimjet, ak4) pairs in increasing order
+  // - create map of results:  std::map<pat::Jet, PseudoJet>
+  // - Loop:  Grab smallest dR, store match in map, remove jet from pairList
+  //set_user_index, user_index
+  //NEW:  use the user_index defined above to reference each jet!
+  std::map<int, pat::Jet> resultMap;
+  std::vector<int> unmatchedJets;  //vector of IDs of unmatched jets
+  // note:  pairList will have duplicates; this is okay
+  std::vector<std::tuple<int, int, float> > pairList;  // jet, ak4_, dR
+  for(unsigned int i=0; i<ak4_jets.size(); i++) {
+    bool found_match = false;
+    for(unsigned int j=0; j<slimjetH->size(); j++) {
+      // calc dR
+      float dR = sqrt( pow(ak4_jets[i].eta() - (*slimjetH)[j].eta(), 2) +
+                       pow(ak4_jets[i].phi() - (*slimjetH)[j].phi(), 2) );
+      if(dR < 0.4) {
+        //std::cout << "chadrons is " << (*slimjetH)[j].jetFlavourInfo().getcHadrons().size() << std::endl;
+        //std::cout << "eta is " << (*slimjetH)[j].eta() << std::endl;
+        pairList.push_back(std::make_tuple(i, j, dR));
+      }
+    }
+    if(!found_match) {
+      unmatchedJets.push_back(ak4_jets[i].user_index());
+    }
+  }
+  // next, sort in order of increasing dR:
+  std::sort(pairList.begin(), pairList.end(), [](std::tuple<int, int, float> t1, std::tuple<int, int, float> t2){ return std::get<2>(t1) < std::get<2>(t2); });
+  // go through each jet and match:
+  while(pairList.size() > 0) {
+    // grab first element, assign pair
+    PseudoJet ak4_assn = ak4_jets[std::get<0>(pairList[0])];
+    int uindex = ak4_assn.user_index();
+    pat::Jet slimj_assn = (*slimjetH)[std::get<1>(pairList[0])];
+    resultMap[uindex] = slimj_assn;
+    //std::cout << "Adding, nchadrons= " << slimj_assn.jetFlavourInfo().getcHadrons().size() << std::endl;
+    // remove all particles matched to that jet
+    for(unsigned int k=1; k<resultMap.size(); k++) {
+      if(std::get<0>(pairList[k]) == std::get<0>(pairList[0]) ||
+         std::get<1>(pairList[k]) == std::get<1>(pairList[0])) {
+        pairList.erase(pairList.begin() + k);
+      }
+    }
+    pairList.erase(pairList.begin());
+  } // matching finished; results stored in resultMap
+
+
+  for(auto &j: ak4_jets) {  // was ak8, etc
+
+    // Match AK4 jet to truth label
+    auto ak4_label = ak4_match.flavorLabel(j, *genpartH, 0.8);
+    //cout << "Label: " << ak4_label.first << endl;
+    if ((ak4_label.first == FatJetMatching::QCD_all && !isQCD) || (ak4_label.first != FatJetMatching::QCD_all && isQCD)) continue;
 
     float etasign = j.eta() > 0 ? 1 : -1;
 
@@ -340,7 +402,7 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
     math::XYZVector jet_dir = jet_dir_temp.Unit();
     TVector3 jet_dir3(jet_px, jet_py, jet_pz);
 
-    // Loop over AK8 jet constituents
+    // Loop over AK4 jet constituents
     const vector<PseudoJet> constituents = j.constituents();
     for (auto &cand : constituents) {
       // Match PseudoJet constituent to PF candidate
@@ -382,26 +444,38 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
     fj_phi = j.phi();
     fj_mass = j.m();
     // NEW
-    fj_nc = j.jetFlavourInfo().getcHadrons().size()
-    fj_nb = j.jetFlavourInfo().getbHadrons().size()
-    fj_partflav = j.partonFlavour();
-    fj_hadrflav = j.hadronFlavour();
+    // check whether jet has been matched first
+    if(std::find(unmatchedJets.begin(), unmatchedJets.end(), j.user_index()) == unmatchedJets.end()) {
+      //unmatched; assign dummy value
+      fj_nc = -99;
+      fj_nb = -99;
+      fj_partflav = -99;
+      fj_hadrflav = -99;
+    } else {
+      pat::Jet flavJet = resultMap[j.user_index()];
+      fj_nc = flavJet.jetFlavourInfo().getcHadrons().size();
+      fj_nb = flavJet.jetFlavourInfo().getbHadrons().size();
+      fj_partflav = flavJet.partonFlavour();
+      fj_hadrflav = flavJet.hadronFlavour();
+    }
 
-    label_Top_bcq = (ak8_label.first == FatJetMatching::Top_bcq);
-    label_Top_bqq = (ak8_label.first == FatJetMatching::Top_bqq);
-    label_Top_bc = (ak8_label.first == FatJetMatching::Top_bc);
-    label_Top_bq = (ak8_label.first == FatJetMatching::Top_bq);
-    label_W_cq = (ak8_label.first == FatJetMatching::W_cq);
-    label_W_qq = (ak8_label.first == FatJetMatching::W_qq);
-    label_Z_bb = (ak8_label.first == FatJetMatching::Z_bb);
-    label_Z_cc = (ak8_label.first == FatJetMatching::Z_cc);
-    label_Z_qq = (ak8_label.first == FatJetMatching::Z_qq);
-    label_H_bb = (ak8_label.first == FatJetMatching::H_bb);
-    label_H_cc = (ak8_label.first == FatJetMatching::H_cc);
-    label_H_qqqq = (ak8_label.first == FatJetMatching::H_qqqq);
-    label_H_tautau = (ak8_label.first == FatJetMatching::H_tautau);
-    label_H_qq = (ak8_label.first == FatJetMatching::H_qq);
-    label_QCD_all = (ak8_label.first == FatJetMatching::QCD_all);
+    label_Top_bcq = (ak4_label.first == FatJetMatching::Top_bcq);
+    label_Top_bqq = (ak4_label.first == FatJetMatching::Top_bqq);
+    label_Top_bc = (ak4_label.first == FatJetMatching::Top_bc);
+    label_Top_bq = (ak4_label.first == FatJetMatching::Top_bq);
+    label_W_cq = (ak4_label.first == FatJetMatching::W_cq);
+    label_W_qq = (ak4_label.first == FatJetMatching::W_qq);
+    label_Z_bb = (ak4_label.first == FatJetMatching::Z_bb);
+    label_Z_cc = (ak4_label.first == FatJetMatching::Z_cc);
+    label_Z_qq = (ak4_label.first == FatJetMatching::Z_qq);
+    label_H_bb = (ak4_label.first == FatJetMatching::H_bb);
+    label_H_cc = (ak4_label.first == FatJetMatching::H_cc);
+    label_H_qqqq = (ak4_label.first == FatJetMatching::H_qqqq);
+    label_H_tautau = (ak4_label.first == FatJetMatching::H_tautau);
+    label_H_qq = (ak4_label.first == FatJetMatching::H_qq);
+    label_QCD_all = (ak4_label.first == FatJetMatching::QCD_all);
+
+    event_no = iEvent.id().event();
 
     tree->Fill();	
     clearVars();
