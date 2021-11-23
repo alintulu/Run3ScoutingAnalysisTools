@@ -10,6 +10,8 @@ from Configuration.Eras.Era_Run3_cff import Run3
 from FWCore.ParameterSet.VarParsing import VarParsing
 params = VarParsing('analysis')
 
+params.maxEvents = -1
+
 params.register(
     'isQCD',
     False,

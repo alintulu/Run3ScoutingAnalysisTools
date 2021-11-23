@@ -3,18 +3,18 @@ config = Configuration()
 config.section_('General')
 config.General.transferLogs = False
 config.General.transferOutputs = True
-config.General.workArea = 'crab_projects_ak8scouting_fullEvents'
-config.General.requestName = 'BulkGraviton_hh_GF_HH_14TeV_TuneCP5_pythia8'
+config.General.workArea = 'crab_projects_ak8scouting_QCD_Pt300to7000'
+config.General.requestName = 'QCD_Pt300to7000_TuneCP5_14TeV-pythia8'
 config.section_('JobType')
 config.JobType.numCores = 1
 config.JobType.sendExternalFolder = True
-config.JobType.pyCfgParams = ['inputDataset=/BulkGraviton_hh_GF_HH_14TeV_TuneCP5_pythia8/mkomm-ML_210512-d1606bbcd4ad268d18a3191de15a9732/USER']
+config.JobType.pyCfgParams = ['inputDataset=/QCD_Pt300to7000_TuneCP5_14TeV-pythia8/mkomm-ML_210512-d1606bbcd4ad268d18a3191de15a9732/USER']
 config.JobType.pluginName = 'Analysis'
 config.JobType.allowUndistributedCMSSW = True
 config.JobType.psetName = '../test/reHLT_2in1_crab.py'
 config.JobType.maxMemoryMB = 2000
 config.section_('Data')
-config.Data.inputDataset = '/BulkGraviton_hh_GF_HH_14TeV_TuneCP5_pythia8/mkomm-ML_210512-d1606bbcd4ad268d18a3191de15a9732/USER'
+config.Data.inputDataset = '/QCD_Pt300to7000_TuneCP5_14TeV-pythia8/mkomm-ML_210512-d1606bbcd4ad268d18a3191de15a9732/USER'
 config.Data.outputDatasetTag = 'DeepNtuplesAK8-v00'
 config.Data.publication = False
 config.Data.unitsPerJob = 5

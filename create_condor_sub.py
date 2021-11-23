@@ -35,24 +35,24 @@ with open(opts.inputFile) as file:
             sys.exit("Does not recognise input file")
         output_edm = "/eos/user/a/adlintul/scouting/particlenet/particle_features/reHLT/prod/edm/" + sample + "/" + input_folder
         os.system('mkdir -p %s'%output_edm)
-        os.system('mkdir -p %s'%output_edm.replace("edm", "nano"))
+        os.system('mkdir -p %s'%output_edm.replace("edm", "nano_msd"))
         output_edm += "/" + input_name
         if (opts.maxEvents != -1):
            output_edm_num = output_edm[:-5]+"_numEvent%d"%opts.maxEvents+".root"
         else:
            output_edm_num = output_edm
         if (opts.maxEvents != -1):
-           output_nano = output_edm.replace("edm", "nano")[:-5]+"_numEvent%d"%opts.maxEvents+".root"
+           output_nano = output_edm.replace("edm", "nano_msd")[:-5]+"_numEvent%d"%opts.maxEvents+".root"
         else:
-           output_nano = output_edm.replace("edm", "nano")
+           output_nano = output_edm.replace("edm", "nano_msd")
         os.system('mkdir -p %s'%job_dir+sample+"/"+input_folder+"/Job_%d"%i)
 
         job_name=sample+"/"+input_folder+"/Job_%d"%i+"/sub_%s.sh"%(str(i))
         job=open(job_dir+"/"+job_name,'w')
         job.write("#!/bin/sh\n\n")
         job.write("INPUT={0}\n".format(input_file))
-        job.write("OUTPUT_EDM={0}\n".format(output_edm))
-        job.write("OUTPUT_EDM_NUM={0}\n".format(output_edm_num))
+        #job.write("OUTPUT_EDM={0}\n".format(output_edm))
+        #job.write("OUTPUT_EDM_NUM={0}\n".format(output_edm_num))
         job.write("OUTPUT_NANO={0}\n\n".format(output_nano))
         if opts.proxyPath != "noproxy":
             job.write("export X509_USER_PROXY=$1\n")
@@ -65,9 +65,10 @@ with open(opts.inputFile) as file:
         job.write("cd %s\n"%(opts.cmssw))
         job.write("eval `scramv1 runtime -sh`\n")
         job.write("cd -\n")
-        job.write("cmsRun {reHLT_file} inputFiles=file:$INPUT outputFile=$OUTPUT_EDM maxEvents={maxEvents}\n".format(reHLT_file=opts.cmssw+"/reHLT.py", maxEvents=opts.maxEvents)) #reHLT
-        job.write("cmsRun {scoutingNano} inputFiles=file:$OUTPUT_EDM_NUM outputFile=$OUTPUT_NANO isQCD={isQCD} isMC=True useWeights=False GlobalTagMC=112X_mcRun3_2021_realistic_v16\n".format(scoutingNano=opts.cmssw+"/Run3ScoutingAnalysisTools/Analysis/test/ScoutingNanoAOD_cfg.py", isQCD=isQCD)) #ntuple creation
-        job.write("rm $OUTPUT_EDM_NUM\n")
+        job.write("cmsRun {reHLT_file} inputFiles=file:$INPUT outputFile=$OUTPUT_NANO maxEvents={maxEvents} isQCD={isQCD}".format(reHLT_file=opts.cmssw+"/Run3ScoutingAnalysisTools/Analysis/test/reHLT_2in1.py", maxEvents=opts.maxEvents, isQCD=isQCD))
+        #job.write("cmsRun {reHLT_file} inputFiles=file:$INPUT outputFile=$OUTPUT_EDM maxEvents={maxEvents}\n".format(reHLT_file=opts.cmssw+"/reHLT.py", maxEvents=opts.maxEvents)) #reHLT
+        #job.write("cmsRun {scoutingNano} inputFiles=file:$OUTPUT_EDM_NUM outputFile=$OUTPUT_NANO isQCD={isQCD} isMC=True useWeights=False GlobalTagMC=112X_mcRun3_2021_realistic_v16\n".format(scoutingNano=opts.cmssw+"/Run3ScoutingAnalysisTools/Analysis/test/ScoutingNanoAOD_cfg.py", isQCD=isQCD)) #ntuple creation
+        #job.write("rm $OUTPUT_EDM_NUM\n")
         job.close()
         os.system("chmod +x %s"%(job_dir+job_name))
 
