@@ -358,6 +358,7 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
         //std::cout << "chadrons is " << (*slimjetH)[j].jetFlavourInfo().getcHadrons().size() << std::endl;
         //std::cout << "eta is " << (*slimjetH)[j].eta() << std::endl;
         pairList.push_back(std::make_tuple(i, j, dR));
+        found_match = true;
       }
     }
     if(!found_match) {
@@ -375,7 +376,7 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
     resultMap[uindex] = slimj_assn;
     //std::cout << "Adding, nchadrons= " << slimj_assn.jetFlavourInfo().getcHadrons().size() << std::endl;
     // remove all particles matched to that jet
-    for(unsigned int k=1; k<resultMap.size(); k++) {
+    for(unsigned int k=1; k<pairList.size(); k++) {
       if(std::get<0>(pairList[k]) == std::get<0>(pairList[0]) ||
          std::get<1>(pairList[k]) == std::get<1>(pairList[0])) {
         pairList.erase(pairList.begin() + k);
@@ -388,7 +389,7 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
   for(auto &j: ak4_jets) {  // was ak8, etc
 
     // Match AK4 jet to truth label
-    auto ak4_label = ak4_match.flavorLabel(j, *genpartH, 0.8);
+    auto ak4_label = ak4_match.flavorLabel(j, *genpartH, 0.4);
     //cout << "Label: " << ak4_label.first << endl;
     if ((ak4_label.first == FatJetMatching::QCD_all && !isQCD) || (ak4_label.first != FatJetMatching::QCD_all && isQCD)) continue;
 
