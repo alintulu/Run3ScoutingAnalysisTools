@@ -75,7 +75,7 @@ params.parseArguments()
 
 # Message Logger settings
 process.load("FWCore.MessageService.MessageLogger_cfi")
-process.MessageLogger.destinations = ['cout', 'cerr']
+#process.MessageLogger.destinations = ['cout', 'cerr']
 process.MessageLogger.cerr.FwkReport.reportEvery = 5
 
 # Set the process options -- Display summary at the end, enable unscheduled execution
@@ -90,9 +90,7 @@ process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(-1) )
 
 # Input EDM files
 process.source = cms.Source("PoolSource",
-	fileNames = cms.untracked.vstring([
-	'file:/eos/cms/store/user/dsperka/ttbar_scouting.root',
-	])
+	fileNames = cms.untracked.vstring(params.inputFiles)
 )
 
 # Load the standard set of configuration modules
@@ -115,7 +113,7 @@ else :
 
 # Define the services needed for the treemaker
 process.TFileService = cms.Service("TFileService",
-    fileName = cms.string("scout.root")
+    fileName = cms.string(params.outputFile)
 )
 
 # Tree for the generator weights
