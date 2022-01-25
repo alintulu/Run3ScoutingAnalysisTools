@@ -47,7 +47,7 @@
 #include "DataFormats/Scouting/interface/Run3ScoutingVertex.h"
 #include "DataFormats/Scouting/interface/Run3ScoutingTrack.h"
 #include "DataFormats/Scouting/interface/Run3ScoutingMuon.h"
-#include "DataFormats/Scouting/interface/Run3ScoutingParticle.h"
+#include "DataFormats/Scouting/interface/Run3ScoutingParticleV2.h"
 
 #include "DataFormats/VertexReco/interface/Vertex.h"
 #include "DataFormats/VertexReco/interface/VertexFwd.h"
@@ -129,7 +129,7 @@ private:
     const edm::EDGetTokenT<std::vector<Run3ScoutingMuon> >      muonsToken;
     const edm::EDGetTokenT<std::vector<Run3ScoutingElectron> >  	electronsToken;
     const edm::EDGetTokenT<std::vector<Run3ScoutingPhoton> >  	photonsToken;
-    const edm::EDGetTokenT<std::vector<Run3ScoutingParticle> >  	pfcandsToken;
+    const edm::EDGetTokenT<std::vector<Run3ScoutingParticleV2> >  	pfcandsToken;
     const edm::EDGetTokenT<std::vector<Run3ScoutingPFJet> >  	pfjetsToken;
     const edm::EDGetTokenT<std::vector<Run3ScoutingTrack> >  	tracksToken;
     const edm::EDGetTokenT<std::vector<Run3ScoutingVertex> >  	pvToken;
@@ -292,6 +292,7 @@ private:
     vector<Float_t> PFCand_m_;
     vector<Int_t> PFCand_pdgId_;
     vector<Int_t> PFCand_vertex_;
+    vector<Float_t> PFCand_normchi2_;
 
     //Track
     const static int max_track = 10000;
@@ -377,7 +378,7 @@ ScoutingNanoAOD::ScoutingNanoAOD(const edm::ParameterSet& iConfig):
     muonsToken               (consumes<std::vector<Run3ScoutingMuon> >             (iConfig.getParameter<edm::InputTag>("muons"))), 
     electronsToken           (consumes<std::vector<Run3ScoutingElectron> >         (iConfig.getParameter<edm::InputTag>("electrons"))), 
     photonsToken           (consumes<std::vector<Run3ScoutingPhoton> >         (iConfig.getParameter<edm::InputTag>("photons"))), 
-    pfcandsToken             (consumes<std::vector<Run3ScoutingParticle> >         (iConfig.getParameter<edm::InputTag>("pfcands"))), 
+    pfcandsToken             (consumes<std::vector<Run3ScoutingParticleV2> >         (iConfig.getParameter<edm::InputTag>("pfcands"))), 
     pfjetsToken              (consumes<std::vector<Run3ScoutingPFJet> >            (iConfig.getParameter<edm::InputTag>("pfjets"))),
     tracksToken              (consumes<std::vector<Run3ScoutingTrack> >            (iConfig.getParameter<edm::InputTag>("tracks"))), 
     pvToken              (consumes<std::vector<Run3ScoutingVertex> >            (iConfig.getParameter<edm::InputTag>("primaryVertices"))), 
@@ -552,6 +553,7 @@ ScoutingNanoAOD::ScoutingNanoAOD(const edm::ParameterSet& iConfig):
     tree->Branch("PFCand_m", &PFCand_m_ );
     tree->Branch("PFCand_pdgId", &PFCand_pdgId_ );
     tree->Branch("PFCand_vertex", &PFCand_vertex_ );
+    tree->Branch("PFCand_normchi2", &PFCand_normchi2_ );
 
 
     //Tracks
@@ -645,7 +647,7 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
     Handle<vector<Run3ScoutingPFJet> > pfjetsH;
     iEvent.getByToken(pfjetsToken, pfjetsH);
     
-    Handle<vector<Run3ScoutingParticle> > pfcandsH;
+    Handle<vector<Run3ScoutingParticleV2> > pfcandsH;
     iEvent.getByToken(pfcandsToken, pfcandsH);
 
     Handle<vector<Run3ScoutingTrack> > tracksH;
@@ -836,6 +838,7 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
         PFCand_m_.push_back(iter->m());
         PFCand_pdgId_.push_back(iter->pdgId());
         PFCand_vertex_.push_back(iter->vertex());        
+        PFCand_normchi2_.push_back(iter->normchi2());
         n_pfcand++;
     } 
 
@@ -1037,6 +1040,7 @@ void ScoutingNanoAOD::clearVars(){
     PFCand_m_.clear();
     PFCand_pdgId_.clear();
     PFCand_vertex_.clear();
+    PFCand_normchi2_.clear();
     Track_pt_.clear();
     Track_eta_.clear();
     Track_phi_.clear();
