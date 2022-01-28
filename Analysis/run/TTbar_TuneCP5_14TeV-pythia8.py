@@ -3,22 +3,21 @@ config = Configuration()
 config.section_('General')
 config.General.transferLogs = False
 config.General.transferOutputs = True
-config.General.workArea = 'crab_projects_BulkGraviton'
-config.General.requestName = 'BulkGraviton_hh_GF_HH_14TeV_TuneCP5_pythia8'
+config.General.workArea = 'crab_projects_TTbar'
+config.General.requestName = 'TTbar_TuneCP5_14TeV-pythia8'
 config.section_('JobType')
 config.JobType.numCores = 1
 config.JobType.sendExternalFolder = True
-config.JobType.pyCfgParams = ['inputDataset=/BulkGraviton_hh_GF_HH_14TeV_TuneCP5_pythia8/mkomm-ML_210512-d1606bbcd4ad268d18a3191de15a9732/USER', 'outputFileMini=mini.root']
+config.JobType.pyCfgParams = ['inputDataset=/TTbar_TuneCP5_14TeV-pythia8/mkomm-ML_210512-d1606bbcd4ad268d18a3191de15a9732/USER']
 config.JobType.pluginName = 'Analysis'
 config.JobType.allowUndistributedCMSSW = True
 config.JobType.psetName = '../test/reHLT_2in1_crab_keepMiniAOD.py'
 config.JobType.maxMemoryMB = 2000
 config.section_('Data')
-config.Data.inputDataset = '/BulkGraviton_hh_GF_HH_14TeV_TuneCP5_pythia8/mkomm-ML_210512-d1606bbcd4ad268d18a3191de15a9732/USER'
-#config.Data.userInputFiles = ['root://eoscms//eos/cms/store/group/dpg_trigger/comm_trigger/TriggerStudiesGroup/Scouting/Run3/ML_210512/BulkGraviton_hh_GF_HH_14TeV_TuneCP5_pythia8/ML_210512/210610_115224/0000/scouting_1.root']
+config.Data.inputDataset = '/TTbar_TuneCP5_14TeV-pythia8/mkomm-ML_210512-d1606bbcd4ad268d18a3191de15a9732/USER'
 config.Data.outputDatasetTag = 'DeepNtuplesAK4-v00'
 config.Data.publication = False
-config.Data.unitsPerJob = 10
+config.Data.unitsPerJob = 5
 config.Data.inputDBS = 'phys03'
 config.Data.splitting = 'FileBased'
 config.Data.allowNonValidInputDataset = True

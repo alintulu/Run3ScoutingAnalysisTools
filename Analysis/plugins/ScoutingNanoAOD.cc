@@ -47,8 +47,7 @@
 #include "DataFormats/Scouting/interface/Run3ScoutingVertex.h"
 #include "DataFormats/Scouting/interface/Run3ScoutingTrack.h"
 #include "DataFormats/Scouting/interface/Run3ScoutingMuon.h"
-#include "DataFormats/Scouting/interface/Run3ScoutingParticle.h"
-#include "DataFormats/Scouting/interface/Run3ScoutingParticleParticleNet.h"
+#include "DataFormats/Scouting/interface/Run3ScoutingParticleV2.h"
 
 #include "DataFormats/VertexReco/interface/Vertex.h"
 #include "DataFormats/VertexReco/interface/VertexFwd.h"
@@ -134,7 +133,7 @@ private:
   virtual void endLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
   virtual void clearVars();
   const edm::InputTag triggerResultsTag;
-  const edm::EDGetTokenT<std::vector<Run3ScoutingParticleParticleNet> >  	pfcandsParticleNetToken;
+  const edm::EDGetTokenT<std::vector<Run3ScoutingParticleV2> >  	pfcandsParticleNetToken;
   const edm::EDGetTokenT<reco::GenParticleCollection>      genpartsToken;
   // NEW
   const edm::EDGetTokenT<std::vector<pat::Jet> >     slimjetToken;
@@ -218,7 +217,7 @@ private:
 };
 
 ScoutingNanoAOD::ScoutingNanoAOD(const edm::ParameterSet& iConfig):
-  pfcandsParticleNetToken  (consumes<std::vector<Run3ScoutingParticleParticleNet> > (iConfig.getParameter<edm::InputTag>("pfcandsParticleNet"))),
+  pfcandsParticleNetToken  (consumes<std::vector<Run3ScoutingParticleV2> > (iConfig.getParameter<edm::InputTag>("pfcandsParticleNet"))),
   genpartsToken            (consumes<reco::GenParticleCollection> (iConfig.getParameter<edm::InputTag>("genpart"))),
   slimjetToken             (consumes<std::vector<pat::Jet> > (iConfig.getParameter<edm::InputTag>("slimjet"))),
   isQCD                    (iConfig.existsAs<bool>("isQCD") ? iConfig.getParameter<bool>("isQCD") : false)
@@ -306,7 +305,7 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
   using namespace fastjet;
   using namespace fastjet::contrib;
 
-  Handle<vector<Run3ScoutingParticleParticleNet> > pfcandsParticleNetH;
+  Handle<vector<Run3ScoutingParticleV2> > pfcandsParticleNetH;
   iEvent.getByToken(pfcandsParticleNetToken, pfcandsParticleNetH);
 
   Handle<GenParticleCollection> genpartH;
@@ -407,7 +406,7 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
     const vector<PseudoJet> constituents = j.constituents();
     for (auto &cand : constituents) {
       // Match PseudoJet constituent to PF candidate
-      auto *reco_cand = dynamic_cast<const Run3ScoutingParticleParticleNet*> (&pfcandsParticleNetH->at(cand.user_index()));
+      auto *reco_cand = dynamic_cast<const Run3ScoutingParticleV2*> (&pfcandsParticleNetH->at(cand.user_index()));
       // The following is needed to compute btagEtaRel, btagPtRatio and btagPParRatio
       float trk_px = reco_cand->trk_pt() * cos(reco_cand->trk_phi());
       float trk_py = reco_cand->trk_pt() * sin(reco_cand->trk_phi());
@@ -422,7 +421,7 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
       pfcand_etarel.push_back(etasign * (reco_cand->eta() - j.eta()));
       pfcand_phirel.push_back(deltaPhi(reco_cand->phi(), j.phi()));
       pfcand_abseta.push_back(abs(reco_cand->eta()));
-      pfcand_charge.push_back(reco_cand->charge());
+      pfcand_charge.push_back(abs(reco_cand->pdgId())/reco_cand->pdgId());
       pfcand_isEl.push_back(abs(reco_cand->pdgId()) == 11);
       pfcand_isMu.push_back(abs(reco_cand->pdgId()) == 13);
       pfcand_isGamma.push_back(abs(reco_cand->pdgId()) == 22);
