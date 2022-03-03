@@ -332,7 +332,7 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
   ClusterSequenceArea ak4_cs(fj_part, ak4_def, area_def);
   vector<PseudoJet> ak4_jets = sorted_by_pt(ak4_cs.inclusive_jets(15.0));
 
-  cout << "Number of jets: " << ak4_jets.size() << endl;
+  //cout << "Number of jets: " << ak4_jets.size() << endl;
 
 
   // NEW:  Match slimjets w/ ak4_jets, record pdgID info
@@ -389,8 +389,8 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
 
     // Match AK4 jet to truth label
     auto ak4_label = ak4_match.flavorLabel(j, *genpartH, 0.4);
-    //cout << "Label: " << ak4_label.first << endl;
-    if ((ak4_label.first == FatJetMatching::QCD_all && !isQCD) || (ak4_label.first != FatJetMatching::QCD_all && isQCD)) continue;
+    // cout << "Label: " << ak4_label.first << endl;
+    //if ((ak4_label.first == FatJetMatching::QCD_all && !isQCD) || (ak4_label.first != FatJetMatching::QCD_all && isQCD)) continue;
 
     float etasign = j.eta() > 0 ? 1 : -1;
 
