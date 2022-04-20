@@ -132,6 +132,7 @@ private:
   virtual void beginLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
   virtual void endLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
   virtual void clearVars();
+  bool isNeutralPdg(int);
   const edm::InputTag triggerResultsTag;
   const edm::EDGetTokenT<std::vector<Run3ScoutingParticleV2> >  	pfcandsParticleNetToken;
   const edm::EDGetTokenT<reco::GenParticleCollection>      genpartsToken;
@@ -297,6 +298,16 @@ ScoutingNanoAOD::ScoutingNanoAOD(const edm::ParameterSet& iConfig):
 ScoutingNanoAOD::~ScoutingNanoAOD() {
 }
 
+// https://github.com/cms-sw/cmssw/blob/6d2f66057131baacc2fcbdd203588c41c885b42c/PhysicsTools/JetMCAlgos/plugins/GenHFHadronMatcher.cc#L1022
+bool ScoutingNanoAOD::isNeutralPdg(int pdgId) {
+   const int neutralPdgs_array[] = {9, 21, 22, 23, 25, 12, 14, 16, 111, 130, 310, 311, 421, 511, 2112}; // gluon, gluon, gamma, Z0, higgs, electron neutrino, muon neutrino, tau neutrino, pi0, K0_L, K0_S; K0, neutron
+   const std::vector<int> neutralPdgs(neutralPdgs_array, neutralPdgs_array + sizeof(neutralPdgs_array) / sizeof(int));
+   if (std::find(neutralPdgs.begin(), neutralPdgs.end(), std::abs(pdgId)) == neutralPdgs.end())
+     return false;
+ 
+   return true;
+}
+
 void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup) {
   using namespace edm;
   using namespace std;
@@ -421,7 +432,11 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
       pfcand_etarel.push_back(etasign * (reco_cand->eta() - j.eta()));
       pfcand_phirel.push_back(deltaPhi(reco_cand->phi(), j.phi()));
       pfcand_abseta.push_back(abs(reco_cand->eta()));
-      pfcand_charge.push_back(abs(reco_cand->pdgId())/reco_cand->pdgId());
+      if (isNeutralPdg(reco_cand->pdgId())) {
+         pfcand_charge.push_back(0);
+      } else {
+         pfcand_charge.push_back(abs(reco_cand->pdgId())/reco_cand->pdgId());
+      }
       pfcand_isEl.push_back(abs(reco_cand->pdgId()) == 11);
       pfcand_isMu.push_back(abs(reco_cand->pdgId()) == 13);
       pfcand_isGamma.push_back(abs(reco_cand->pdgId()) == 22);
