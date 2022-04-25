@@ -47,7 +47,7 @@
 #include "DataFormats/Scouting/interface/Run3ScoutingVertex.h"
 #include "DataFormats/Scouting/interface/Run3ScoutingTrack.h"
 #include "DataFormats/Scouting/interface/Run3ScoutingMuon.h"
-#include "DataFormats/Scouting/interface/Run3ScoutingParticleV2.h"
+#include "DataFormats/Scouting/interface/Run3ScoutingParticle.h"
 
 #include "DataFormats/VertexReco/interface/Vertex.h"
 #include "DataFormats/VertexReco/interface/VertexFwd.h"
@@ -109,6 +109,9 @@
 
 #include "Run3ScoutingAnalysisTools/Analysis/interface/FatJetMatching.h"
 
+#include "DataFormats/JetMatching/interface/JetFlavourInfo.h"
+#include "DataFormats/JetMatching/interface/JetFlavourInfoMatching.h"
+
 using namespace std;
 using namespace deepntuples;
 
@@ -133,31 +136,9 @@ private:
   virtual void endLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
   virtual void clearVars();
   bool isNeutralPdg(int);
-  const edm::InputTag triggerResultsTag;
-  const edm::EDGetTokenT<std::vector<Run3ScoutingParticleV2> >  	pfcandsParticleNetToken;
-  const edm::EDGetTokenT<reco::GenParticleCollection>      genpartsToken;
-  // NEW
-  const edm::EDGetTokenT<std::vector<pat::Jet> >     slimjetToken;
+  const edm::EDGetTokenT<std::vector<Run3ScoutingParticle> >  	pfcandsParticleNetToken;
+  const edm::EDGetTokenT<reco::JetFlavourInfoMatchingCollection> jetFlavourInfosToken_;
 
-  std::vector<std::string> triggerPathsVector;
-  std::map<std::string, int> triggerPathsMap;
-
-  bool doL1;       
-  triggerExpression::Data triggerCache_;
-      
-  // Generator-level information
-  // Flags for the different types of triggers used in the analysis
-  // For now we are interested in events passing either the single or double lepton triggers
-  unsigned char                trig;
-       
-  edm::InputTag                algInputTag_;       
-  edm::InputTag                extInputTag_;       
-  edm::EDGetToken              algToken_;
-  //l1t::L1TGlobalUtil          *l1GtUtils_;
-  std::unique_ptr<l1t::L1TGlobalUtil> l1GtUtils_;
-  std::vector<std::string>     l1Seeds_;
-  std::vector<bool>            l1Result_;
-        
   // TTree carrying the event weight information
   TTree* tree;
 
@@ -195,48 +176,14 @@ private:
   float fj_partflav;
   float fj_hadrflav;
 
-  //ParticleNet Jet label
-  int label_Top_bcq;
-  int label_Top_bqq;
-  int label_Top_bc;
-  int label_Top_bq;
-  int label_W_cq;
-  int label_W_qq;
-  int label_Z_bb;
-  int label_Z_cc;
-  int label_Z_qq;
-  int label_H_bb;
-  int label_H_cc;
-  int label_H_qqqq;
-  int label_H_tautau;
-  int label_H_qq;
-  int label_QCD_all;
-
-  bool isQCD;
-
   int event_no;
 };
 
 ScoutingNanoAOD::ScoutingNanoAOD(const edm::ParameterSet& iConfig):
-  pfcandsParticleNetToken  (consumes<std::vector<Run3ScoutingParticleV2> > (iConfig.getParameter<edm::InputTag>("pfcandsParticleNet"))),
-  genpartsToken            (consumes<reco::GenParticleCollection> (iConfig.getParameter<edm::InputTag>("genpart"))),
-  slimjetToken             (consumes<std::vector<pat::Jet> > (iConfig.getParameter<edm::InputTag>("slimjet"))),
-  isQCD                    (iConfig.existsAs<bool>("isQCD") ? iConfig.getParameter<bool>("isQCD") : false)
+  pfcandsParticleNetToken  (consumes<std::vector<Run3ScoutingParticle> > (iConfig.getParameter<edm::InputTag>("pfcandsParticleNet"))),
+  jetFlavourInfosToken_    (consumes<reco::JetFlavourInfoMatchingCollection> (iConfig.getParameter<edm::InputTag>("jetFlavourInfos")))
 {
   usesResource("TFileService");
-  if (doL1) {
-   algInputTag_ = iConfig.getParameter<edm::InputTag>("AlgInputTag");
-   extInputTag_ = iConfig.getParameter<edm::InputTag>("l1tExtBlkInputTag");
-   algToken_ = consumes<BXVector<GlobalAlgBlk>>(algInputTag_);
-   l1Seeds_ = iConfig.getParameter<std::vector<std::string> >("l1Seeds");
-    /* l1GtUtils_ = new l1t::L1TGlobalUtil(iConfig,consumesCollector());*/	
-   l1GtUtils_ = std::make_unique<l1t::L1TGlobalUtil>(
-    iConfig, consumesCollector(), *this, algInputTag_, extInputTag_, l1t::UseEventSetupIn::Event);
-  }
-  else {
-    l1Seeds_ = std::vector<std::string>();
-    l1GtUtils_ = 0;
-  }
 
  // Access the TFileService
   edm::Service<TFileService> fs;
@@ -276,22 +223,6 @@ ScoutingNanoAOD::ScoutingNanoAOD(const edm::ParameterSet& iConfig):
   tree->Branch("fj_partflav", &fj_partflav);
   tree->Branch("fj_hadrflav", &fj_hadrflav);
 
-  tree->Branch("label_Top_bcq", &label_Top_bcq);
-  tree->Branch("label_Top_bqq", &label_Top_bqq);
-  tree->Branch("label_Top_bc", &label_Top_bc);
-  tree->Branch("label_Top_bq", &label_Top_bq);
-  tree->Branch("label_W_cq", &label_W_cq);
-  tree->Branch("label_W_qq", &label_W_qq);
-  tree->Branch("label_Z_bb", &label_Z_bb);
-  tree->Branch("label_Z_cc", &label_Z_cc);
-  tree->Branch("label_Z_qq", &label_Z_qq);
-  tree->Branch("label_H_bb", &label_H_bb);
-  tree->Branch("label_H_cc", &label_H_cc);
-  tree->Branch("label_H_qqqq", &label_H_qqqq);
-  tree->Branch("label_H_tautau", &label_H_tautau);
-  tree->Branch("label_H_qq", &label_H_qq);
-  tree->Branch("label_QCD_all", &label_QCD_all);
-
   tree->Branch("event_no", &event_no);
 }
 
@@ -316,14 +247,11 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
   using namespace fastjet;
   using namespace fastjet::contrib;
 
-  Handle<vector<Run3ScoutingParticleV2> > pfcandsParticleNetH;
+  Handle<vector<Run3ScoutingParticle> > pfcandsParticleNetH;
   iEvent.getByToken(pfcandsParticleNetToken, pfcandsParticleNetH);
 
-  Handle<GenParticleCollection> genpartH;
-  iEvent.getByToken(genpartsToken, genpartH);
-
-  Handle<vector<pat::Jet> > slimjetH;
-  iEvent.getByToken(slimjetToken, slimjetH);
+  Handle<reco::JetFlavourInfoMatchingCollection> theJetFlavourInfos;
+  iEvent.getByToken(jetFlavourInfosToken_, theJetFlavourInfos );
 
   // Create AK4 Jets
   vector<PseudoJet> fj_part;
@@ -343,9 +271,6 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
   ClusterSequenceArea ak4_cs(fj_part, ak4_def, area_def);
   vector<PseudoJet> ak4_jets = sorted_by_pt(ak4_cs.inclusive_jets(15.0));
 
-  //cout << "Number of jets: " << ak4_jets.size() << endl;
-
-
   // NEW:  Match slimjets w/ ak4_jets, record pdgID info
   // Note:  must do before main loop to avoid previous bug
   // outline:  (nc, nb, parton flavor, partflav, hadrflav)
@@ -354,16 +279,16 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
   // - Loop:  Grab smallest dR, store match in map, remove jet from pairList
   //set_user_index, user_index
   //NEW:  use the user_index defined above to reference each jet!
-  std::map<int, pat::Jet> resultMap;
+  std::map<int, reco::JetFlavourInfo> resultMap;
   std::vector<int> unmatchedJets;  //vector of IDs of unmatched jets
   // note:  pairList will have duplicates; this is okay
   std::vector<std::tuple<int, int, float> > pairList;  // jet, ak4_, dR
   for(unsigned int i=0; i<ak4_jets.size(); i++) {
     bool found_match = false;
-    for(unsigned int j=0; j<slimjetH->size(); j++) {
+    for(unsigned int j=0; j<theJetFlavourInfos->size(); j++) {
       // calc dR
-      float dR = sqrt( pow(ak4_jets[i].eta() - (*slimjetH)[j].eta(), 2) +
-                       pow(ak4_jets[i].phi() - (*slimjetH)[j].phi(), 2) );
+      float dR = sqrt( pow(ak4_jets[i].eta() - (*theJetFlavourInfos)[j].first.get()->eta(), 2) +
+                       pow(ak4_jets[i].phi() - (*theJetFlavourInfos)[j].first.get()->phi(), 2) );
       if(dR < 0.4) {
         //std::cout << "chadrons is " << (*slimjetH)[j].jetFlavourInfo().getcHadrons().size() << std::endl;
         //std::cout << "eta is " << (*slimjetH)[j].eta() << std::endl;
@@ -382,9 +307,9 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
     // grab first element, assign pair
     PseudoJet ak4_assn = ak4_jets[std::get<0>(pairList[0])];
     int uindex = ak4_assn.user_index();
-    pat::Jet slimj_assn = (*slimjetH)[std::get<1>(pairList[0])];
-    resultMap[uindex] = slimj_assn;
-    //std::cout << "Adding, nchadrons= " << slimj_assn.jetFlavourInfo().getcHadrons().size() << std::endl;
+    reco::JetFlavourInfo jetFlavour_assn = (*theJetFlavourInfos)[std::get<1>(pairList[0])].second;
+    resultMap[uindex] = jetFlavour_assn;
+    //std::cout << "Adding, nchadrons= " << jetFlavour_assn.jetFlavourInfo().getcHadrons().size() << std::endl;
     // remove all particles matched to that jet
     for(unsigned int k=1; k<pairList.size(); k++) {
       if(std::get<0>(pairList[k]) == std::get<0>(pairList[0]) ||
@@ -397,11 +322,6 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
 
 
   for(auto &j: ak4_jets) {  // was ak8, etc
-
-    // Match AK4 jet to truth label
-    auto ak4_label = ak4_match.flavorLabel(j, *genpartH, 0.4);
-    // cout << "Label: " << ak4_label.first << endl;
-    //if ((ak4_label.first == FatJetMatching::QCD_all && !isQCD) || (ak4_label.first != FatJetMatching::QCD_all && isQCD)) continue;
 
     float etasign = j.eta() > 0 ? 1 : -1;
 
@@ -417,7 +337,7 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
     const vector<PseudoJet> constituents = j.constituents();
     for (auto &cand : constituents) {
       // Match PseudoJet constituent to PF candidate
-      auto *reco_cand = dynamic_cast<const Run3ScoutingParticleV2*> (&pfcandsParticleNetH->at(cand.user_index()));
+      auto *reco_cand = dynamic_cast<const Run3ScoutingParticle*> (&pfcandsParticleNetH->at(cand.user_index()));
       // The following is needed to compute btagEtaRel, btagPtRatio and btagPParRatio
       float trk_px = reco_cand->trk_pt() * cos(reco_cand->trk_phi());
       float trk_py = reco_cand->trk_pt() * sin(reco_cand->trk_phi());
@@ -467,28 +387,12 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
       fj_partflav = -99;
       fj_hadrflav = -99;
     } else {
-      pat::Jet flavJet = resultMap[j.user_index()];
-      fj_nc = flavJet.jetFlavourInfo().getcHadrons().size();
-      fj_nb = flavJet.jetFlavourInfo().getbHadrons().size();
-      fj_partflav = flavJet.partonFlavour();
-      fj_hadrflav = flavJet.hadronFlavour();
+      reco::JetFlavourInfo flavJet = resultMap[j.user_index()];
+      fj_nc = flavJet.getcHadrons().size();
+      fj_nb = flavJet.getbHadrons().size();
+      fj_partflav = flavJet.getPartonFlavour();
+      fj_hadrflav = flavJet.getHadronFlavour();
     }
-
-    label_Top_bcq = (ak4_label.first == FatJetMatching::Top_bcq);
-    label_Top_bqq = (ak4_label.first == FatJetMatching::Top_bqq);
-    label_Top_bc = (ak4_label.first == FatJetMatching::Top_bc);
-    label_Top_bq = (ak4_label.first == FatJetMatching::Top_bq);
-    label_W_cq = (ak4_label.first == FatJetMatching::W_cq);
-    label_W_qq = (ak4_label.first == FatJetMatching::W_qq);
-    label_Z_bb = (ak4_label.first == FatJetMatching::Z_bb);
-    label_Z_cc = (ak4_label.first == FatJetMatching::Z_cc);
-    label_Z_qq = (ak4_label.first == FatJetMatching::Z_qq);
-    label_H_bb = (ak4_label.first == FatJetMatching::H_bb);
-    label_H_cc = (ak4_label.first == FatJetMatching::H_cc);
-    label_H_qqqq = (ak4_label.first == FatJetMatching::H_qqqq);
-    label_H_tautau = (ak4_label.first == FatJetMatching::H_tautau);
-    label_H_qq = (ak4_label.first == FatJetMatching::H_qq);
-    label_QCD_all = (ak4_label.first == FatJetMatching::QCD_all);
 
     event_no = iEvent.id().event();
 
@@ -529,34 +433,6 @@ void ScoutingNanoAOD::endJob() {
 }
 
 void ScoutingNanoAOD::beginRun(edm::Run const& iRun, edm::EventSetup const& iSetup) {
-  // HLT paths
-
-  triggerPathsVector.push_back("DST_DoubleMu1_noVtx_CaloScouting_v*");
-  triggerPathsVector.push_back("DST_DoubleMu3_noVtx_CaloScouting_v*");
-  triggerPathsVector.push_back("DST_DoubleMu3_noVtx_Mass10_PFScouting_v*");
-  triggerPathsVector.push_back("DST_L1HTT_CaloScouting_PFScouting_v*");
-  triggerPathsVector.push_back("DST_CaloJet40_CaloScouting_PFScouting_v*");
-  triggerPathsVector.push_back("DST_HT250_CaloScouting_v*");
-  triggerPathsVector.push_back("DST_HT410_PFScouting_v*");
-  triggerPathsVector.push_back("DST_HT450_PFScouting_v*");
-
-  HLTConfigProvider hltConfig;
-  bool changedConfig = false;
-  hltConfig.init(iRun, iSetup, triggerResultsTag.process(), changedConfig);
-
-  for (size_t i = 0; i < triggerPathsVector.size(); i++) {
-    triggerPathsMap[triggerPathsVector[i]] = -1;
-  }
-
-  for(size_t i = 0; i < triggerPathsVector.size(); i++){
-    TPRegexp pattern(triggerPathsVector[i]);
-    for(size_t j = 0; j < hltConfig.triggerNames().size(); j++){
-      std::string pathName = hltConfig.triggerNames()[j];
-      if(TString(pathName).Contains(pattern)){
-	triggerPathsMap[triggerPathsVector[i]] = j;
-      }
-    }
-  }
 }
 
 void ScoutingNanoAOD::endRun(edm::Run const&, edm::EventSetup const&) {
