@@ -58,15 +58,21 @@ process.nanogenSequence = cms.Sequence(
    genJetFlavourAssociation
 )
 
-process.mmtree = cms.EDAnalyzer('ScoutingNanoAOD',
+process.pixelonly = cms.EDAnalyzer('ScoutingNanoAOD',
   pfcandsParticleNet = cms.InputTag("hltScoutingPFPacker"),
   jetFlavourInfos    = cms.InputTag("genJetFlavourAssociation")
 )
 
-process.content = cms.EDAnalyzer("EventContentAnalyzer")
+process.full = cms.EDAnalyzer('ScoutingNanoAOD',
+  pfcandsParticleNet = cms.InputTag("hltScoutingFullTrackPFPacker"),
+  jetFlavourInfos    = cms.InputTag("genJetFlavourAssociation")
+)
+
+#process.content = cms.EDAnalyzer("EventContentAnalyzer")
 
 # Path and EndPath definitions
-process.nanoAOD_step = cms.Path(process.nanogenSequence*process.content*process.mmtree)
+process.pixelonly_step = cms.Path(process.nanogenSequence*process.pixelonly)
+process.full_step = cms.Path(process.nanogenSequence*process.full)
 #process.NANOAODSIMoutput_step = cms.EndPath(process.NANOAODSIMoutput)
 
 #process.schedule = cms.Schedule(process.nanoAOD_step,process.NANOAODSIMoutput_step)

@@ -166,15 +166,15 @@ private:
   vector<Float16_t> pfcand_btagPParRatio;
 
   //Jet kinematics
-  float fj_pt;
-  float fj_eta;
-  float fj_phi;
-  float fj_mass;
+  float jet_pt;
+  float jet_eta;
+  float jet_phi;
+  float jet_mass;
   // NEW:
-  float fj_nc;
-  float fj_nb;
-  float fj_partflav;
-  float fj_hadrflav;
+  float jet_nCHadrons;
+  float jet_nBHadrons;
+  float jet_partonFlavour;
+  float jet_hadronFlavour;
 
   int event_no;
 };
@@ -213,15 +213,15 @@ ScoutingNanoAOD::ScoutingNanoAOD(const edm::ParameterSet& iConfig):
   tree->Branch("pfcand_btagPtRatio", &pfcand_btagPtRatio);
   tree->Branch("pfcand_btagPParRatio", &pfcand_btagPParRatio);
 
-  tree->Branch("fj_pt", &fj_pt);
-  tree->Branch("fj_eta", &fj_eta);
-  tree->Branch("fj_phi", &fj_phi);
-  tree->Branch("fj_mass", &fj_mass);
-  // NEW:  nc, nb, partflav
-  tree->Branch("fj_nc", &fj_nc);
-  tree->Branch("fj_nb", &fj_nb);
-  tree->Branch("fj_partflav", &fj_partflav);
-  tree->Branch("fj_hadrflav", &fj_hadrflav);
+  tree->Branch("jet_pt", &jet_pt);
+  tree->Branch("jet_eta", &jet_eta);
+  tree->Branch("jet_phi", &jet_phi);
+  tree->Branch("jet_mass", &jet_mass);
+  // NEW:  nc, nb, partonFlavour
+  tree->Branch("jet_nCHadrons", &jet_nCHadrons);
+  tree->Branch("jet_nBHadrons", &jet_nBHadrons);
+  tree->Branch("jet_partonFlavour", &jet_partonFlavour);
+  tree->Branch("jet_hadronFlavour", &jet_hadronFlavour);
 
   tree->Branch("event_no", &event_no);
 }
@@ -254,13 +254,13 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
   iEvent.getByToken(jetFlavourInfosToken_, theJetFlavourInfos );
 
   // Create AK4 Jets
-  vector<PseudoJet> fj_part;
-  fj_part.reserve(pfcandsParticleNetH->size());
+  vector<PseudoJet> jet_part;
+  jet_part.reserve(pfcandsParticleNetH->size());
   int pfcand_i = 0;
   for (auto pfcands_iter = pfcandsParticleNetH->begin(); pfcands_iter != pfcandsParticleNetH->end(); ++pfcands_iter) {
     math::PtEtaPhiMLorentzVector p4(pfcands_iter->pt(), pfcands_iter->eta(), pfcands_iter->phi(), pfcands_iter->m());
-    fj_part.emplace_back(p4.px(), p4.py(), p4.pz(), p4.energy());
-    fj_part.back().set_user_index(pfcand_i);
+    jet_part.emplace_back(p4.px(), p4.py(), p4.pz(), p4.energy());
+    jet_part.back().set_user_index(pfcand_i);
     pfcand_i++;
   }
 
@@ -268,12 +268,12 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
   fastjet::GhostedAreaSpec area_spec(5.0,1,0.01);
   fastjet::AreaDefinition area_def(fastjet::active_area, area_spec);
 
-  ClusterSequenceArea ak4_cs(fj_part, ak4_def, area_def);
+  ClusterSequenceArea ak4_cs(jet_part, ak4_def, area_def);
   vector<PseudoJet> ak4_jets = sorted_by_pt(ak4_cs.inclusive_jets(15.0));
 
   // NEW:  Match slimjets w/ ak4_jets, record pdgID info
   // Note:  must do before main loop to avoid previous bug
-  // outline:  (nc, nb, parton flavor, partflav, hadrflav)
+  // outline:  (nc, nb, parton flavor, partflav, hadronFlavour)
   // - create pairList (vector of int vectors):  All dRs < 0.4 of all possible (slimjet, ak4) pairs in increasing order
   // - create map of results:  std::map<pat::Jet, PseudoJet>
   // - Loop:  Grab smallest dR, store match in map, remove jet from pairList
@@ -374,24 +374,24 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
       pfcand_btagPParRatio.push_back(jet_dir.Dot(track_mom) / track_mag);
     }
 
-    fj_pt = j.pt();
-    fj_eta = j.eta();
-    fj_phi = j.phi();
-    fj_mass = j.m();
+    jet_pt = j.pt();
+    jet_eta = j.eta();
+    jet_phi = j.phi();
+    jet_mass = j.m();
     // NEW
     // check whether jet has been matched first
     if(std::find(unmatchedJets.begin(), unmatchedJets.end(), j.user_index()) == unmatchedJets.end()) {
       //unmatched; assign dummy value
-      fj_nc = -99;
-      fj_nb = -99;
-      fj_partflav = -99;
-      fj_hadrflav = -99;
+      jet_nCHadrons = -99;
+      jet_nBHadrons = -99;
+      jet_partonFlavour = -99;
+      jet_hadronFlavour = -99;
     } else {
       reco::JetFlavourInfo flavJet = resultMap[j.user_index()];
-      fj_nc = flavJet.getcHadrons().size();
-      fj_nb = flavJet.getbHadrons().size();
-      fj_partflav = flavJet.getPartonFlavour();
-      fj_hadrflav = flavJet.getHadronFlavour();
+      jet_nCHadrons = flavJet.getcHadrons().size();
+      jet_nBHadrons = flavJet.getbHadrons().size();
+      jet_partonFlavour = flavJet.getPartonFlavour();
+      jet_hadronFlavour = flavJet.getHadronFlavour();
     }
 
     event_no = iEvent.id().event();
