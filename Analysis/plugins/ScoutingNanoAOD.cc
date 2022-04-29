@@ -287,8 +287,7 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
     bool found_match = false;
     for(unsigned int j=0; j<theJetFlavourInfos->size(); j++) {
       // calc dR
-      float dR = sqrt( pow(ak4_jets[i].eta() - (*theJetFlavourInfos)[j].first.get()->eta(), 2) +
-                       pow(ak4_jets[i].phi() - (*theJetFlavourInfos)[j].first.get()->phi(), 2) );
+      float dR = reco::deltaR(ak4_jets[i].eta(), ak4_jets[i].phi(), (*theJetFlavourInfos)[j].first.get()->eta(), (*theJetFlavourInfos)[j].first.get()->phi());
       if(dR < 0.4) {
         //std::cout << "chadrons is " << (*slimjetH)[j].jetFlavourInfo().getcHadrons().size() << std::endl;
         //std::cout << "eta is " << (*slimjetH)[j].eta() << std::endl;
