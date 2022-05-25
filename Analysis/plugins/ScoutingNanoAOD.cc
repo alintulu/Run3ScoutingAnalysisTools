@@ -143,27 +143,22 @@ private:
   TTree* tree;
 
   //PFCand ParticleNet
-  vector<Float16_t> pfcand_pt_log_nopuppi;
-  vector<Float16_t> pfcand_e_log_nopuppi;
-  vector<Float16_t> pfcand_etarel;
-  vector<Float16_t> pfcand_phirel;
-  vector<Float16_t> pfcand_abseta;
-  vector<Float16_t> pfcand_charge;
-  vector<Float16_t> pfcand_isEl;
-  vector<Float16_t> pfcand_isMu;
-  vector<Float16_t> pfcand_isGamma;
-  vector<Float16_t> pfcand_isChargedHad;
-  vector<Float16_t> pfcand_isNeutralHad;
-  vector<Float16_t> pfcand_lostInnerHits;
-  vector<Float16_t> pfcand_normchi2;
-  vector<Float16_t> pfcand_quality;
-  vector<Float16_t> pfcand_dz;
-  vector<Float16_t> pfcand_dzsig;
-  vector<Float16_t> pfcand_dxy;
-  vector<Float16_t> pfcand_dxysig;
-  vector<Float16_t> pfcand_btagEtaRel;
-  vector<Float16_t> pfcand_btagPtRatio;
-  vector<Float16_t> pfcand_btagPParRatio;
+  vector<Float16_t> jet_pfcand_pt_log;
+  vector<Float16_t> jet_pfcand_energy_log;
+  vector<Float16_t> jet_pfcand_deta;
+  vector<Float16_t> jet_pfcand_dphi;
+  vector<Float16_t> jet_pfcand_eta;
+  vector<Float16_t> jet_pfcand_charge;
+  vector<Float16_t> jet_pfcand_nlostinnerhits;
+  vector<Float16_t> jet_pfcand_track_chi2;
+  vector<Float16_t> jet_pfcand_track_qual;
+  vector<Float16_t> jet_pfcand_dz;
+  vector<Float16_t> jet_pfcand_dzsig;
+  vector<Float16_t> jet_pfcand_dxy;
+  vector<Float16_t> jet_pfcand_dxysig;
+  vector<Float16_t> jet_pfcand_etarel;
+  vector<Float16_t> jet_pfcand_pperp_ratio;
+  vector<Float16_t> jet_pfcand_ppara_ratio;
 
   //Jet kinematics
   float jet_pt;
@@ -191,27 +186,22 @@ ScoutingNanoAOD::ScoutingNanoAOD(const edm::ParameterSet& iConfig):
   // Create the TTree
   tree = fs->make<TTree>("tree", "tree");
 
-  tree->Branch("pfcand_pt_log_nopuppi", &pfcand_pt_log_nopuppi);
-  tree->Branch("pfcand_e_log_nopuppi", &pfcand_e_log_nopuppi);
-  tree->Branch("pfcand_etarel", &pfcand_etarel);
-  tree->Branch("pfcand_phirel", &pfcand_phirel);
-  tree->Branch("pfcand_abseta", &pfcand_abseta);
-  tree->Branch("pfcand_charge", &pfcand_charge);
-  tree->Branch("pfcand_isEl", &pfcand_isEl);
-  tree->Branch("pfcand_isMu", &pfcand_isMu);
-  tree->Branch("pfcand_isGamma", &pfcand_isGamma);
-  tree->Branch("pfcand_isChargedHad", &pfcand_isChargedHad);
-  tree->Branch("pfcand_isNeutralHad", &pfcand_isNeutralHad);
-  tree->Branch("pfcand_lostInnerHits", &pfcand_lostInnerHits);
-  tree->Branch("pfcand_normchi2", &pfcand_normchi2);
-  tree->Branch("pfcand_quality", &pfcand_quality);
-  tree->Branch("pfcand_dz", &pfcand_dz);
-  tree->Branch("pfcand_dzsig", &pfcand_dzsig);
-  tree->Branch("pfcand_dxy", &pfcand_dxy);
-  tree->Branch("pfcand_dxysig", &pfcand_dxysig);
-  tree->Branch("pfcand_btagEtaRel", &pfcand_btagEtaRel);
-  tree->Branch("pfcand_btagPtRatio", &pfcand_btagPtRatio);
-  tree->Branch("pfcand_btagPParRatio", &pfcand_btagPParRatio);
+  tree->Branch("jet_pfcand_pt_log", &jet_pfcand_pt_log);
+  tree->Branch("jet_pfcand_energy_log", &jet_pfcand_energy_log);
+  tree->Branch("jet_pfcand_deta", &jet_pfcand_deta);
+  tree->Branch("jet_pfcand_dphi", &jet_pfcand_dphi);
+  tree->Branch("jet_pfcand_eta", &jet_pfcand_eta);
+  tree->Branch("jet_pfcand_charge", &jet_pfcand_charge);
+  tree->Branch("jet_pfcand_nlostinnerhits", &jet_pfcand_nlostinnerhits);
+  tree->Branch("jet_pfcand_track_chi2", &jet_pfcand_track_chi2);
+  tree->Branch("jet_pfcand_track_qual", &jet_pfcand_track_qual);
+  tree->Branch("jet_pfcand_dz", &jet_pfcand_dz);
+  tree->Branch("jet_pfcand_dzsig", &jet_pfcand_dzsig);
+  tree->Branch("jet_pfcand_dxy", &jet_pfcand_dxy);
+  tree->Branch("jet_pfcand_dxysig", &jet_pfcand_dxysig);
+  tree->Branch("jet_pfcand_etarel", &jet_pfcand_etarel);
+  tree->Branch("jet_pfcand_pperp_ratio", &jet_pfcand_pperp_ratio);
+  tree->Branch("jet_pfcand_ppara_ratio", &jet_pfcand_ppara_ratio);
 
   tree->Branch("jet_pt", &jet_pt);
   tree->Branch("jet_eta", &jet_eta);
@@ -322,7 +312,6 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
 
   for(auto &j: ak4_jets) {  // was ak8, etc
 
-    float etasign = j.eta() > 0 ? 1 : -1;
 
     // The following is needed to compute btagEtaRel, btagPtRatio and btagPParRatio
     float jet_px = j.pt() * cos(j.phi());
@@ -330,47 +319,40 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
     float jet_pz = j.pt() * sinh(j.eta());
     math::XYZVector jet_dir_temp(jet_px, jet_py, jet_pz);
     math::XYZVector jet_dir = jet_dir_temp.Unit();
-    TVector3 jet_dir3(jet_px, jet_py, jet_pz);
+    TVector3 jet_direction(jet_px, jet_py, jet_pz);
 
     // Loop over AK4 jet constituents
     const vector<PseudoJet> constituents = j.constituents();
     for (auto &cand : constituents) {
       // Match PseudoJet constituent to PF candidate
       auto *reco_cand = dynamic_cast<const Run3ScoutingParticle*> (&pfcandsParticleNetH->at(cand.user_index()));
-      // The following is needed to compute btagEtaRel, btagPtRatio and btagPParRatio
-      float trk_px = reco_cand->trk_pt() * cos(reco_cand->trk_phi());
-      float trk_py = reco_cand->trk_pt() * sin(reco_cand->trk_phi());
-      float trk_pz = reco_cand->trk_pt() * sinh(reco_cand->trk_eta());
-      math::XYZVector track_mom(trk_px, trk_py, trk_pz);
-      TVector3 track_mom3(trk_px, trk_py, trk_pz);
-      double track_mag = sqrt(trk_px * trk_px + trk_py * trk_py + trk_pz * trk_pz);
+      float pfcand_px = reco_cand->pt() * cos(reco_cand->phi());
+      float pfcand_py = reco_cand->pt() * sin(reco_cand->phi());
+      float pfcand_pz = reco_cand->pt() * sinh(reco_cand->eta());
+      math::XYZVector cand_dir(pfcand_px, pfcand_py, pfcand_pz);
+      TVector3 cand_direction(cand_dir.x(), cand_dir.y(), cand_dir.z());
 
       float reco_cand_p = reco_cand->pt() * cosh(reco_cand->eta());
-      pfcand_pt_log_nopuppi.push_back(log(reco_cand->pt()));
-      pfcand_e_log_nopuppi.push_back(log(sqrt(reco_cand_p*reco_cand_p + reco_cand->m()*reco_cand->m())));
-      pfcand_etarel.push_back(etasign * (reco_cand->eta() - j.eta()));
-      pfcand_phirel.push_back(deltaPhi(reco_cand->phi(), j.phi()));
-      pfcand_abseta.push_back(abs(reco_cand->eta()));
+      jet_pfcand_pt_log.push_back(log(reco_cand->pt()));
+      jet_pfcand_energy_log.push_back(log(sqrt(reco_cand_p*reco_cand_p + reco_cand->m()*reco_cand->m())));
+      jet_pfcand_deta.push_back(j.eta() - reco_cand->eta());
+      jet_pfcand_dphi.push_back(deltaPhi(j.phi(), reco_cand->phi()));
+      jet_pfcand_eta.push_back(reco_cand->eta());
       if (isNeutralPdg(reco_cand->pdgId())) {
-         pfcand_charge.push_back(0);
+         jet_pfcand_charge.push_back(0);
       } else {
-         pfcand_charge.push_back(abs(reco_cand->pdgId())/reco_cand->pdgId());
+         jet_pfcand_charge.push_back(abs(reco_cand->pdgId())/reco_cand->pdgId());
       }
-      pfcand_isEl.push_back(abs(reco_cand->pdgId()) == 11);
-      pfcand_isMu.push_back(abs(reco_cand->pdgId()) == 13);
-      pfcand_isGamma.push_back(abs(reco_cand->pdgId()) == 22);
-      pfcand_isChargedHad.push_back(abs(reco_cand->pdgId()) == 211);
-      pfcand_isNeutralHad.push_back(abs(reco_cand->pdgId()) == 130);
-      pfcand_lostInnerHits.push_back(reco_cand->lostInnerHits());
-      pfcand_normchi2.push_back(reco_cand->normchi2());
-      pfcand_quality.push_back(reco_cand->quality());
-      pfcand_dz.push_back(reco_cand->dz());
-      pfcand_dzsig.push_back(reco_cand->dzsig());
-      pfcand_dxy.push_back(reco_cand->dxy());
-      pfcand_dxysig.push_back(reco_cand->dxysig());
-      pfcand_btagEtaRel.push_back(reco::btau::etaRel(jet_dir, track_mom));
-      pfcand_btagPtRatio.push_back(track_mom3.Perp(jet_dir3) / track_mag);
-      pfcand_btagPParRatio.push_back(jet_dir.Dot(track_mom) / track_mag);
+      jet_pfcand_nlostinnerhits.push_back(reco_cand->lostInnerHits());
+      jet_pfcand_track_chi2.push_back(reco_cand->normchi2());
+      jet_pfcand_track_qual.push_back(reco_cand->quality());
+      jet_pfcand_dz.push_back(reco_cand->dz());
+      jet_pfcand_dzsig.push_back(reco_cand->dzsig());
+      jet_pfcand_dxy.push_back(reco_cand->dxy());
+      jet_pfcand_dxysig.push_back(reco_cand->dxysig());
+      jet_pfcand_etarel.push_back(reco::btau::etaRel(jet_dir, cand_dir));
+      jet_pfcand_pperp_ratio.push_back(jet_direction.Perp(cand_direction) / cand_direction.Mag());
+      jet_pfcand_ppara_ratio.push_back(jet_direction.Dot(cand_direction) / cand_direction.Mag());
     }
 
     jet_pt = j.pt();
@@ -401,27 +383,22 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
 }
 
 void ScoutingNanoAOD::clearVars(){
-  pfcand_pt_log_nopuppi.clear();
-  pfcand_e_log_nopuppi.clear();
-  pfcand_etarel.clear();
-  pfcand_phirel.clear();
-  pfcand_abseta.clear();
-  pfcand_charge.clear();
-  pfcand_isEl.clear();
-  pfcand_isMu.clear();
-  pfcand_isGamma.clear();
-  pfcand_isChargedHad.clear();
-  pfcand_isNeutralHad.clear();
-  pfcand_lostInnerHits.clear();
-  pfcand_normchi2.clear();
-  pfcand_quality.clear();
-  pfcand_dz.clear();
-  pfcand_dzsig.clear();
-  pfcand_dxy.clear();
-  pfcand_dxysig.clear();
-  pfcand_btagEtaRel.clear();
-  pfcand_btagPtRatio.clear();
-  pfcand_btagPParRatio.clear();
+  jet_pfcand_pt_log.clear();
+  jet_pfcand_energy_log.clear();
+  jet_pfcand_deta.clear();
+  jet_pfcand_dphi.clear();
+  jet_pfcand_eta.clear();
+  jet_pfcand_charge.clear();
+  jet_pfcand_nlostinnerhits.clear();
+  jet_pfcand_track_chi2.clear();
+  jet_pfcand_track_qual.clear();
+  jet_pfcand_dz.clear();
+  jet_pfcand_dzsig.clear();
+  jet_pfcand_dxy.clear();
+  jet_pfcand_dxysig.clear();
+  jet_pfcand_etarel.clear();
+  jet_pfcand_pperp_ratio.clear();
+  jet_pfcand_ppara_ratio.clear();
 }
 
 void ScoutingNanoAOD::beginJob() {
