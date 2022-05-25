@@ -165,18 +165,20 @@ private:
   vector<Float16_t> pfcand_btagPtRatio;
   vector<Float16_t> pfcand_btagPParRatio;
 
-  //Jet kinematics
   float jet_pt;
   float jet_eta;
   float jet_phi;
   float jet_mass;
-  // NEW:
+  
   float jet_nCHadrons;
   float jet_nBHadrons;
   float jet_partonFlavour;
   float jet_hadronFlavour;
 
   int event_no;
+
+  bool debug_match = false;
+  int debug_match_numJets = 1000;
 };
 
 ScoutingNanoAOD::ScoutingNanoAOD(const edm::ParameterSet& iConfig):
@@ -185,10 +187,8 @@ ScoutingNanoAOD::ScoutingNanoAOD(const edm::ParameterSet& iConfig):
 {
   usesResource("TFileService");
 
- // Access the TFileService
   edm::Service<TFileService> fs;
 
-  // Create the TTree
   tree = fs->make<TTree>("tree", "tree");
 
   tree->Branch("pfcand_pt_log_nopuppi", &pfcand_pt_log_nopuppi);
@@ -243,7 +243,7 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
   using namespace edm;
   using namespace std;
   using namespace reco;
-  using namespace pat;  // new
+  using namespace pat;
   using namespace fastjet;
   using namespace fastjet::contrib;
 
@@ -283,32 +283,49 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
   std::vector<int> unmatchedJets;  //vector of IDs of unmatched jets
   // note:  pairList will have duplicates; this is okay
   std::vector<std::tuple<int, int, float> > pairList;  // jet, ak4_, dR
+
+  int ak4_jet_idx = 0;
+  if (debug_match) std::cout << "dR loop:" << std::endl;
+
   for(unsigned int i=0; i<ak4_jets.size(); i++) {
+    if (debug_match && ak4_jet_idx > debug_match_numJets) break;
     bool found_match = false;
     for(unsigned int j=0; j<theJetFlavourInfos->size(); j++) {
       // calc dR
       float dR = reco::deltaR(ak4_jets[i].eta(), ak4_jets[i].phi(), (*theJetFlavourInfos)[j].first.get()->eta(), (*theJetFlavourInfos)[j].first.get()->phi());
+      if (debug_match) std::cout << i << " " << j << " " << dR << " " << ak4_jets[i].pt() << std::endl;
       if(dR < 0.4) {
-        //std::cout << "chadrons is " << (*slimjetH)[j].jetFlavourInfo().getcHadrons().size() << std::endl;
-        //std::cout << "eta is " << (*slimjetH)[j].eta() << std::endl;
         pairList.push_back(std::make_tuple(i, j, dR));
         found_match = true;
       }
     }
+    ak4_jet_idx++;
     if(!found_match) {
-      unmatchedJets.push_back(ak4_jets[i].user_index());
+      //unmatchedJets.push_back(ak4_jets[i].user_index());
+      unmatchedJets.push_back(i);
     }
   }
+
+  if (debug_match) {
+    std::cout << "\nunmatchedJets loop:" << std::endl;
+    for(auto &j: unmatchedJets) {
+      std::cout << j << std::endl;
+    }
+    std::cout << "\npairList loop:" << std::endl;
+  }
+
   // next, sort in order of increasing dR:
   std::sort(pairList.begin(), pairList.end(), [](std::tuple<int, int, float> t1, std::tuple<int, int, float> t2){ return std::get<2>(t1) < std::get<2>(t2); });
   // go through each jet and match:
   while(pairList.size() > 0) {
+    if (debug_match) std::cout << std::get<0>(pairList[0]) << " " << std::get<1>(pairList[0]) << " " << std::get<2>(pairList[0]) << std::endl;
+
     // grab first element, assign pair
     PseudoJet ak4_assn = ak4_jets[std::get<0>(pairList[0])];
     int uindex = ak4_assn.user_index();
     reco::JetFlavourInfo jetFlavour_assn = (*theJetFlavourInfos)[std::get<1>(pairList[0])].second;
-    resultMap[uindex] = jetFlavour_assn;
-    //std::cout << "Adding, nchadrons= " << jetFlavour_assn.jetFlavourInfo().getcHadrons().size() << std::endl;
+    //resultMap[uindex] = jetFlavour_assn;
+    resultMap[std::get<0>(pairList[0])] = jetFlavour_assn;
     // remove all particles matched to that jet
     for(unsigned int k=1; k<pairList.size(); k++) {
       if(std::get<0>(pairList[k]) == std::get<0>(pairList[0]) ||
@@ -319,8 +336,21 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
     pairList.erase(pairList.begin());
   } // matching finished; results stored in resultMap
 
+  if (debug_match) {
+    std::cout << "\nresultMap loop:" << std::endl;
+    for(auto &r: resultMap) {
+      std::cout << r.first << std::endl;
+    }
+  }
 
+  int num_unmatched_geq30 = 0;
+  int num_matched_geq30 = 0;
+
+  int num_unmatched_leq30 = 0;
+  int num_matched_leq30 = 0;
+  ak4_jet_idx = 0;
   for(auto &j: ak4_jets) {  // was ak8, etc
+    if (debug_match && ak4_jet_idx > debug_match_numJets) break;
 
     float etasign = j.eta() > 0 ? 1 : -1;
 
@@ -377,26 +407,51 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
     jet_eta = j.eta();
     jet_phi = j.phi();
     jet_mass = j.m();
-    // NEW
     // check whether jet has been matched first
-    if(std::find(unmatchedJets.begin(), unmatchedJets.end(), j.user_index()) == unmatchedJets.end()) {
+    //if(std::find(unmatchedJets.begin(), unmatchedJets.end(), j.user_index()) != unmatchedJets.end()) {
+    if(std::find(unmatchedJets.begin(), unmatchedJets.end(), ak4_jet_idx) != unmatchedJets.end()) {
+
+      if (debug_match) std::cout << "\nUnmatched!" << std::endl;
+      if (j.pt() > 30) {
+        num_unmatched_geq30++;
+      } else {
+        num_unmatched_leq30++;
+      }
+
       //unmatched; assign dummy value
       jet_nCHadrons = -99;
       jet_nBHadrons = -99;
       jet_partonFlavour = -99;
       jet_hadronFlavour = -99;
     } else {
-      reco::JetFlavourInfo flavJet = resultMap[j.user_index()];
+	
+      if (debug_match) std::cout << "\nMatched!" << std::endl;
+      if (j.pt() > 30) {
+        num_matched_geq30++;
+      } else {
+        num_matched_leq30++;
+      }
+
+      reco::JetFlavourInfo flavJet = resultMap[ak4_jet_idx];
       jet_nCHadrons = flavJet.getcHadrons().size();
       jet_nBHadrons = flavJet.getbHadrons().size();
       jet_partonFlavour = flavJet.getPartonFlavour();
       jet_hadronFlavour = flavJet.getHadronFlavour();
     }
 
+    ak4_jet_idx++;
+
     event_no = iEvent.id().event();
 
     tree->Fill();	
     clearVars();
+  }
+
+  if (!debug_match) {
+    std::cout << "\nMatched (pT > 30 GeV): " << num_matched_geq30 << " (" << (float)num_matched_geq30/(float)(num_unmatched_geq30 + num_matched_geq30) * 100 << "%)" << std::endl; 
+    std::cout << "Matched (pT < 30 GeV): " << num_matched_leq30 << " (" << (float)num_matched_leq30/(float)(num_unmatched_leq30 + num_matched_leq30) * 100 << "%)" << std::endl; 
+    std::cout << "Unmatched (pT > 30 GeV): " << num_unmatched_geq30 << " (" << (float)num_unmatched_geq30/(float)(num_unmatched_geq30 + num_matched_geq30) * 100 << "%)" << std::endl;
+    std::cout << "Unmatched (pT < 30 GeV): " << num_unmatched_leq30 << " (" << (float)num_unmatched_leq30/(float)(num_unmatched_leq30 + num_matched_leq30) * 100 << "%)\n" << std::endl;
   }
 }
 
