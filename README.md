@@ -1,8 +1,10 @@
-This repository creates jet-level ntuples for training flavour jet tagging with ParticleNet (originally created for the "Jet tagging using the Run3 Scouting data" hackathon 8th-11th Nov 2021).
+_This repository creates jet-level ntuples for training jet flavour tagging with ParticleNet. It was originally created for the "Jet tagging using the Run3 Scouting data" hackathon on November 8-11 2021. The instructions were updated on June 2 2022 for more completeness._
 
 # Start here
 
-Every step described in this README has be tested on lxplus only. There are three main steps to the full worflow: 
+Please note that every step described in this README has be tested on lxplus only. 
+
+There are three main steps to the full worflow: 
 
 1. [Creating the ntuples](#creating-the-ntuples)
 2. [Training the network](#training-the-network)
@@ -31,55 +33,21 @@ cd CMSSW_12_3_0/src
 cmsenv
 ```
 
-2. You can create a config file for re-running the HLT step with the `cmsDrivery.py` command. I will document it below, **however due to compatability issues between the 11_2_1_Patatrack and 12_3_0 releases I had to follow a few more steps to re-run the HLT step successfully. Therefore, instead of creating your own config file following the instructions below I recommend jumping to step (3) and use the pre-exisiting file.** 
+2. You can create a config file for re-running the HLT step with the `cmsDrivery.py` command. However due to compatability issues between the 11_2_1_Patatrack and 12_3_0 releases I had to follow a few more steps to re-run the HLT step successfully. Therefore, instead of creating your own config file I recommend simply using [this pre-existing file](reHLT.py)
 
-Create a file called `reHLT.sh` at `$CMSSW_BASE/src`.
+4. Time to re-run the HLT step. Here you are two options.
 
-```
-lxplus> cd $CMSSW_BASE/src
-lxplus> cat reHLT.sh
-#!/bin/bash
-
-INPUT_FILE=$1
-OUTPUT_FILE=$2
-PYTHON_CFG=$3
-
-cmsDriver.py \
-    reHLT \
-    --processName reHLT \
-    --python_filename $PYTHON_CFG \
-    --eventcontent RAWMINIAODSIM \
-    --customise HLTrigger/Configuration/customizeHLTforPatatrack.customizeHLTforPatatrackTriplets \
-    --filein file:$INPUT_FILE \
-    --fileout file:$OUTPUT_FILE \
-    --conditions auto:phase1_2021_realistic \
-    --step HLT:GRun \
-    --geometry DB:Extended \
-    --era Run3 \
-    --no_exec \
-    --mc \
-    -n 10
- ```
-
-Create the HLT config file called `reHLT.py` by running `reHLT.sh`.
-
-```
-INPUT=/eos/cms/store/group/dpg_trigger/comm_trigger/TriggerStudiesGroup/Scouting/Run3/ML_210512/GluGluHToBB_M125_masseffects_14TeV_TuneCP5_powheg_pythia8/ML_210512/210602_090726/0000/scouting_75.root
-OUTPUT=<INSERT YOUR OUTPUT FILE PATH>
-source reHLT.sh $INPUT $OUTPUT reHLT.py
-```
-
-3. Take this pre-existing HLT config file and re-run the HLT step. Here you are two options.
-
-    a. Run the file locally over one file.
+    a. Run it locally over one file.
 
     ```
-    cmsRun reHLT.py
+    cmsRun reHLT.py outputFile=<INSERT YOUR OUTPUT FILE PATH>
     ```
 
     b. Run over all samples using CRAB.
 
     Here is an example of a CRAB config file you can use. You need to edit `outLFNDirBase` and `storageSite` to match the site you have access to write to. You can find more information about CRAB [here](https://twiki.cern.ch/twiki/bin/view/CMSPublic/CRAB3ConfigurationFile). The other fields can stay as they are.
+    
+    Note that this will only re-run the HLT step over the BulkGraviton samples. You need to repeat this step fro the QCD and TTbar samples too.
 
     ```bash
     from WMCore.Configuration import Configuration
@@ -127,9 +95,7 @@ scram b
 1. Next you can either test the ntupiliser locally by running over one file.
 
 ```
-INPUT=<INSERT YOUR SCOUTING FILE PATH>
-OUTPUT=<INSERT YOUR OUTPUT FILE PATH>
-cmsRun Run3ScoutingAnalysisTools/Analysis/test/ScoutingNanoAOD_NanoGEN_cfg.py inputFiles=$INPUT outputFile=$OUTPUT
+cmsRun Run3ScoutingAnalysisTools/Analysis/test/ScoutingNanoAOD_NanoGEN_cfg.py inputFiles=<INSERT YOUR SCOUTING FILE PATH>
 ```
 2. Or run over all files with CRAB.
 
@@ -169,13 +135,11 @@ config.section_('Debug')
 
 ## Training the network
 
-Hopefully you have now succesfully created your own training ntuples. We are then ready to start training the network. But first we need to install Miniconda, Pytorch (cuda10.2) and Weaver on a normal lxplus node. 
+Hopefully you have now succesfully created your own training ntuples. We are then ready to start training the network. But first we need to install Miniconda, Pytorch (cuda10.2) and Weaver on a lxplus node. 
 
 ### Installing the network
 
-Log into lxplus and follow these [instructions](https://github.com/hqucms/weaver#set-up-your-environment) to set up the necessary environment for training.
-
-With everything succesfully installed, we can start training.
+Log into lxplus and follow these [instructions](https://github.com/hqucms/weaver#set-up-your-environment) to set up the necessary environment for training. Remember to also clone the [Weaver repository](https://github.com/hqucms/weaver).
 
 ### Accessing GPU
 
@@ -231,7 +195,7 @@ It looks chaotic but its use is very simple. First it initializes the conda envi
 2. Change the `$FILES` variable to point to your training ntuples.
 3. Change `$MODEL_PREFIX` and `$LOG` to point to a path you have write access to (note: by including `{auto}` here, weaver will create a unique output name for each training making sure that no output is overwritten by mistake).
 4. Change the `$WEAVER_PATH` variable to point to your weaver installation directory.
-5. Change the `$CONFIG` variable to point to your data config. You can find an example of such a config in [Data config](#data-config).
+5. Change the `$CONFIG` variable to point to your data config. You can find an example of such a config in [here](#data-config).
 
 
 And here is an example of the submission file. I name mine `submit.jdl`. You do not need to change anything in this file as long as your shell script is called `run.sh`.
@@ -385,6 +349,8 @@ weights:
    reweight_hists:
 ```
 
+Our ntuples contain two folders, one called `pixelonly` and one called `full`. These refer to the two different Scouting reconstructions using pixel only tracks and full tracking as input to the PF algorithm. In this config we specified that the treename should be `full/tree`. This means we will train over the full tracking reconstruction.
+
 ### Submitting the training
 
 We are now ready to submit the training to HTCondor.
@@ -397,4 +363,8 @@ In my experience it takes about 2 days to complete the training. When the traini
 
 ## Checking the network performance
 
-It is now time to check the network performance. We have already automatically performed a test after training the network and the a predicrion file has been created. We can use this jupyer notebook to create ROC curves.
+It is now time to check the network performance. We have already automatically performed a test after training the network and the a prediction file has been created. We can use [this jupyer notebook](ROC.ipynb) to create ROC curves.
+
+The script is hopefully relatively self-explanatory. Just change the `filepath` to be your prediction file.
+
+And that's it :tada:
