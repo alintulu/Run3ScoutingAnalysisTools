@@ -143,7 +143,7 @@ Log into lxplus and follow these [instructions](https://github.com/hqucms/weaver
 
 ### Accessing GPU
 
-If you do not have your own GPU resources, you can access GPU using the CERN HTCondor batch system. To start training on HTCondor we need (1) the shell script and (2) the submission file.
+If you do not have your own GPU resources, you can access GPU using the CERN HTCondor batch system. You can find more information about HTCondor GPU resources [here](https://batchdocs.web.cern.ch/tutorial/exercise10.html). To start training on HTCondor we need (1) the shell script and (2) the submission file.
 
 Here is an example of the shell script. I name mine `run.sh`.
 ```
