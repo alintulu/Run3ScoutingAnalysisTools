@@ -31,7 +31,9 @@ cd CMSSW_12_3_0/src
 cmsenv
 ```
 
-2. Create a file called `reHLT.sh` at `$CMSSW_BASE/src`.
+2. You can create a config file for re-running the HLT step with the `cmsDrivery.py` command. I will document it below, **however due to compatability issues between the 11_2_1_Patatrack and 12_3_0 releases I had to follow a few more steps to re-run the HLT step successfully. Therefore, instead of creating your own config file following the instructions below I recommend jumping to step (3) and use the pre-exisiting file.** 
+
+Create a file called `reHLT.sh` at `$CMSSW_BASE/src`.
 
 ```
 lxplus> cd $CMSSW_BASE/src
@@ -59,7 +61,7 @@ cmsDriver.py \
     -n 10
  ```
 
-3. Create the HLT config file by running `reHLT.sh`.
+Create the HLT config file called `reHLT.py` by running `reHLT.sh`.
 
 ```
 INPUT=/eos/cms/store/group/dpg_trigger/comm_trigger/TriggerStudiesGroup/Scouting/Run3/ML_210512/GluGluHToBB_M125_masseffects_14TeV_TuneCP5_powheg_pythia8/ML_210512/210602_090726/0000/scouting_75.root
@@ -67,7 +69,7 @@ OUTPUT=<INSERT YOUR OUTPUT FILE PATH>
 source reHLT.sh $INPUT $OUTPUT reHLT.py
 ```
 
-4. Re-run the HLT step by running `reHLT.py`. Here you are two options.
+3. Take this pre-existing HLT config file and re-run the HLT step. Here you are two options.
 
     a. Run the file locally over one file.
 
