@@ -448,10 +448,10 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
   }
 
   if (!debug_match) {
-    std::cout << "\nMatched (pT > 30 GeV): " << num_matched_geq30 << " (" << (float)num_matched_geq30/(float)(num_unmatched_geq30 + num_matched_geq30) * 100 << "%)" << std::endl; 
-    std::cout << "Matched (pT < 30 GeV): " << num_matched_leq30 << " (" << (float)num_matched_leq30/(float)(num_unmatched_leq30 + num_matched_leq30) * 100 << "%)" << std::endl; 
-    std::cout << "Unmatched (pT > 30 GeV): " << num_unmatched_geq30 << " (" << (float)num_unmatched_geq30/(float)(num_unmatched_geq30 + num_matched_geq30) * 100 << "%)" << std::endl;
-    std::cout << "Unmatched (pT < 30 GeV): " << num_unmatched_leq30 << " (" << (float)num_unmatched_leq30/(float)(num_unmatched_leq30 + num_matched_leq30) * 100 << "%)\n" << std::endl;
+    std::cout << "\nMatched (pT > 30 GeV): " << num_matched_geq30 << "\n(" << (float)num_matched_geq30/(float)(num_unmatched_geq30 + num_matched_geq30) * 100 << "%)" << std::endl; 
+    std::cout << "Matched (pT < 30 GeV): " << num_matched_leq30 << "\n(" << (float)num_matched_leq30/(float)(num_unmatched_leq30 + num_matched_leq30) * 100 << "%)" << std::endl; 
+    std::cout << "Unmatched (pT > 30 GeV): " << num_unmatched_geq30 << "\n(" << (float)num_unmatched_geq30/(float)(num_unmatched_geq30 + num_matched_geq30) * 100 << "%)" << std::endl;
+    std::cout << "Unmatched (pT < 30 GeV): " << num_unmatched_leq30 << "\n(" << (float)num_unmatched_leq30/(float)(num_unmatched_leq30 + num_matched_leq30) * 100 << "%)\n" << std::endl;
   }
 }
 
