@@ -1,77 +1,30 @@
-This repository creates jet-level ntuples for training ParticleNet used at the "Jet tagging using the Run3 Scouting data" hackathon (8th-11th Nov 2021).
+_This repository creates jet-level ntuples for training mass regression with ParticleNet. It was originally created for the "Jet tagging using the Run3 Scouting data" hackathon on November 8-11 2021. The code and instructions were updated on June 14 2022 for more completeness._
 
-## Download and compile code
+## Download, compile and run code
 
-The code was develop in `CMSSW_12_3_0`
+The code was develop in `CMSSW_12_3_0`.
 
-Log into lxplus.
+1. Log into lxplus
+2. Prepare the CMSSW release
 
 ```
-1. prepare CMSSW release
-
 cmsrel CMSSW_12_3_0
 cd CMSSW_12_3_0/src
 cmsenv
 ```
 
-```
-2. clone this repository and compile
+3. Clone this repository and compile
 
+```
 git clone git@github.com:alintulu/Run3ScoutingAnalysisTools.git -b ak8jet-massregression
 scram b -j 8
 ```
-
-## Re-run HLT step
-
-With the code compiled we are ready to re-run the Scouting reconstruction
-
-```bash
-4. Create the following file at $CMSSW_BASE/src
-
-$ cat reHLT.sh
-#!/bin/bash
-
-INPUT_FILE=$1
-OUTPUT_FILE=$2
-PYTHON_CFG=$3
-
-cmsDriver.py \
-    reHLT \
-    --python_filename $PYTHON_CFG \
-    --eventcontent RAWMINIAODSIM \
-    --customise HLTrigger/Configuration/customizeHLTforPatatrack.customizeHLTforPatatrackTriplets \
-    --filein file:$INPUT_FILE \
-    --fileout file:$OUTPUT_FILE \
-    --conditions 112X_mcRun3_2021_realistic_v16 \
-    --step HLT:GRun \
-    --geometry DB:Extended \
-    --era Run3 \
-    --no_exec \
-    --mc \
-    -n 10
-
-5. run the file
-
-source reHLT.sh /eos/cms/store/group/dpg_trigger/comm_trigger/TriggerStudiesGroup/Scouting/Run3/ML_210512/GluGluHToBB_M125_masseffects_14TeV_TuneCP5_powheg_pythia8/ML_210512/210602_090726/0000/scouting_75.root /eos/user/a/adlintul/scouting/particlenet/particle_features/reHLT/edm/scouting_75.root scouting_GluGluHToBB.py
-```
-
-```diff
-6. change the following line in $PYHTON_CFG to differentiate the new objects from the old ones
-
-- process = cms.Process('HLT',Run3)
-+ process = cms.Process('reHLT',Run3)
-```
-
-```bash
-7. run script
-
-cmsRun scouting_GluGluHToBB.py
-```
-
-## Create ntuples
+4. Run locally over one file
 
 ```
-cmsRun Run3ScoutingAnalysisTools/Analysis/test/ScoutingNanoAOD_cfg.py inputFiles=/eos/user/a/adlintul/scouting/particlenet/particle_features/reHLT/edm/scouting_75.root outputFile=/eos/user/a/adlintul/scouting/particlenet/particle_features/reHLT/nano/scouting_75.root isQCD=False isMC=True useWeights=False GlobalTagMC=112X_mcRun3_2021_realistic_v16
+cmsRun Run3ScoutingAnalysisTools/Analysis/test/ScoutingNanoAOD_cfg.py inputFiles=file:/eos/cms/store/group/ml/Tagging4ScoutingHackathon/Adelina/DeepNtuples/12_3_0/ScoutingAK4-v00/BulkGraviton_hh_GF_HH_14TeV_TuneCP5_pythia8/DeepNtuplesAK4-v00/220502_112159/0000/mini_1.root outputFile=test.root maxEvents=1
 ```
+
+Change the argument `maxEvents` to -1 to run over all events.
 
 Done!
