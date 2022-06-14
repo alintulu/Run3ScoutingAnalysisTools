@@ -171,10 +171,29 @@ private:
   float fj_mass;
   float fj_msd;
   float fj_n2b1;
+  int fj_no;
+  int fj_npfcands;
 
   //ParticleNet Jet label
   float fj_gen_mass;
   float fj_genjet_sdmass;
+
+  int label_Top_bcq;
+  int label_Top_bqq;
+  int label_Top_bc;
+  int label_Top_bq;
+  int label_W_cq;
+  int label_W_qq;
+  int label_Z_bb;
+  int label_Z_cc;
+  int label_Z_qq;
+  int label_H_bb;
+  int label_H_cc;
+  int label_H_qqqq;
+  int label_H_tautau;
+  int label_H_qq;
+  int label_QCD_all;
+  int sample_isQCD;
 
   //Event number
   int event_no;
@@ -228,9 +247,28 @@ ScoutingNanoAOD::ScoutingNanoAOD(const edm::ParameterSet& iConfig):
   tree->Branch("fj_mass", &fj_mass);
   tree->Branch("fj_msd", &fj_msd);
   tree->Branch("fj_n2b1", &fj_n2b1);
+  tree->Branch("fj_no", &fj_no);
+  tree->Branch("fj_npfcands", &fj_npfcands);
 
   tree->Branch("fj_gen_mass", &fj_gen_mass);
   tree->Branch("fj_genjet_sdmass", &fj_genjet_sdmass);
+
+  tree->Branch("label_Top_bcq", &label_Top_bcq);
+  tree->Branch("label_Top_bqq", &label_Top_bqq);
+  tree->Branch("label_Top_bc", &label_Top_bc);
+  tree->Branch("label_Top_bq", &label_Top_bq);
+  tree->Branch("label_W_cq", &label_W_cq);
+  tree->Branch("label_W_qq", &label_W_qq);
+  tree->Branch("label_Z_bb", &label_Z_bb);
+  tree->Branch("label_Z_cc", &label_Z_cc);
+  tree->Branch("label_Z_qq", &label_Z_qq);
+  tree->Branch("label_H_bb", &label_H_bb);
+  tree->Branch("label_H_cc", &label_H_cc);
+  tree->Branch("label_H_qqqq", &label_H_qqqq);
+  tree->Branch("label_H_tautau", &label_H_tautau);
+  tree->Branch("label_H_qq", &label_H_qq);
+  tree->Branch("label_QCD_all", &label_QCD_all);
+  tree->Branch("sample_isQCD", &sample_isQCD);
 
   tree->Branch("event_no", &event_no);
 }
@@ -351,7 +389,7 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
     // Match AK8 jet to truth label
     auto ak8_label = ak8_match.flavorLabel(j, *genpartH, 0.8);
     if (debug) std::cout << "Label: " << ak8_label.first << std::endl;
-    if ((ak8_label.first == FatJetMatching::QCD_all && !isQCD) || (ak8_label.first != FatJetMatching::QCD_all && isQCD)) continue;
+    //if ((ak8_label.first == FatJetMatching::QCD_all && !isQCD) || (ak8_label.first != FatJetMatching::QCD_all && isQCD)) continue;
 
     float etasign = j.eta() > 0 ? 1 : -1;
 
@@ -413,27 +451,43 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
     fj_msd = sd_ak8.m();
     fj_n2b1 = N2(sd_ak8);
 
+    fj_no = ak8_jets.size();
+    fj_npfcands = constituents.size();
+
+    label_Top_bcq = (ak8_label.first == FatJetMatching::Top_bcq);
+    label_Top_bqq = (ak8_label.first == FatJetMatching::Top_bqq);
+    label_Top_bc = (ak8_label.first == FatJetMatching::Top_bc);
+    label_Top_bq = (ak8_label.first == FatJetMatching::Top_bq);
+    label_W_cq = (ak8_label.first == FatJetMatching::W_cq);
+    label_W_qq = (ak8_label.first == FatJetMatching::W_qq);
+    label_Z_bb = (ak8_label.first == FatJetMatching::Z_bb);
+    label_Z_cc = (ak8_label.first == FatJetMatching::Z_cc);
+    label_Z_qq = (ak8_label.first == FatJetMatching::Z_qq);
+    label_H_bb = (ak8_label.first == FatJetMatching::H_bb);
+    label_H_cc = (ak8_label.first == FatJetMatching::H_cc);
+    label_H_qqqq = (ak8_label.first == FatJetMatching::H_qqqq);
+    label_H_tautau = (ak8_label.first == FatJetMatching::H_tautau);
+    label_H_qq = (ak8_label.first == FatJetMatching::H_qq);
+    label_QCD_all = (ak8_label.first == FatJetMatching::QCD_all);
+    sample_isQCD = isQCD;
+
     fj_gen_mass = (ak8_label.first < FatJetMatching::QCD_all && ak8_label.second) ? ak8_label.second->mass() : 0;
 
-    if (ak8_label.first == FatJetMatching::QCD_all) {
+    if (std::find(unmatchedJets.begin(), unmatchedJets.end(), ak8_jet_idx) != unmatchedJets.end()) {
 
-       if(std::find(unmatchedJets.begin(), unmatchedJets.end(), ak8_jet_idx) != unmatchedJets.end()) {
-         if (debug) std::cout << "\nUnmatched!" << std::endl;
-         fj_genjet_sdmass = -99;
-
-       } else {
-         
-         if (debug) std::cout << "\nMatched!" << std::endl;
-         fj_genjet_sdmass = resultMap[ak8_jet_idx].mass();
-
-       }
+      if (debug) std::cout << "\nUnmatched!" << std::endl;
+      fj_genjet_sdmass = -99;
 
     } else {
+      
+      if (debug) std::cout << "\nMatched!" << std::endl;
+      fj_genjet_sdmass = resultMap[ak8_jet_idx].mass();
 
-       fj_genjet_sdmass = 0;
     }
 
     event_no = iEvent.id().event();
+
+    ak8_jet_idx++;
 
     tree->Fill();	
     clearVars();
