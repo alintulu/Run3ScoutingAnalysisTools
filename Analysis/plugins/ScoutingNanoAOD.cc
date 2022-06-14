@@ -77,6 +77,8 @@
 #include "DataFormats/VertexReco/interface/Vertex.h"
 #include "DataFormats/VertexReco/interface/VertexFwd.h"
 #include "DataFormats/Common/interface/RefToBase.h"
+#include "DataFormats/JetReco/interface/GenJet.h"
+#include "DataFormats/JetReco/interface/GenJetCollection.h"
 
 // Root include files
 #include "TLorentzVector.h"
@@ -136,25 +138,6 @@ private:
   const edm::EDGetTokenT<std::vector<Run3ScoutingParticle> >  	pfcandsParticleNetToken;
   const edm::EDGetTokenT<reco::GenParticleCollection>      genpartsToken;
 
-  std::vector<std::string> triggerPathsVector;
-  std::map<std::string, int> triggerPathsMap;
-
-  bool doL1;       
-  triggerExpression::Data triggerCache_;
-      
-  // Generator-level information
-  // Flags for the different types of triggers used in the analysis
-  // For now we are interested in events passing either the single or double lepton triggers
-  unsigned char                trig;
-       
-  edm::InputTag                algInputTag_;       
-  edm::InputTag                extInputTag_;       
-  edm::EDGetToken              algToken_;
-  //l1t::L1TGlobalUtil          *l1GtUtils_;
-  std::unique_ptr<l1t::L1TGlobalUtil> l1GtUtils_;
-  std::vector<std::string>     l1Seeds_;
-  std::vector<bool>            l1Result_;
-        
   // TTree carrying the event weight information
   TTree* tree;
 
@@ -196,28 +179,20 @@ private:
   //Event number
   int event_no;
 
+  bool debug = true;
+  int debug_match_numJets = 5;
+
   bool isQCD;
+  const edm::EDGetTokenT<reco::GenJetCollection> genjetToken;
 };
 
 ScoutingNanoAOD::ScoutingNanoAOD(const edm::ParameterSet& iConfig):
   pfcandsParticleNetToken  (consumes<std::vector<Run3ScoutingParticle> > (iConfig.getParameter<edm::InputTag>("pfcandsParticleNet"))),
   genpartsToken            (consumes<reco::GenParticleCollection> (iConfig.getParameter<edm::InputTag>("genpart"))),
-  isQCD                    (iConfig.existsAs<bool>("isQCD") ? iConfig.getParameter<bool>("isQCD") : false)
+  isQCD                    (iConfig.existsAs<bool>("isQCD") ? iConfig.getParameter<bool>("isQCD") : false),
+  genjetToken                (consumes<reco::GenJetCollection>(iConfig.getParameter<edm::InputTag>("ak8genjet")))
 {
   usesResource("TFileService");
-  if (doL1) {
-   algInputTag_ = iConfig.getParameter<edm::InputTag>("AlgInputTag");
-   extInputTag_ = iConfig.getParameter<edm::InputTag>("l1tExtBlkInputTag");
-   algToken_ = consumes<BXVector<GlobalAlgBlk>>(algInputTag_);
-   l1Seeds_ = iConfig.getParameter<std::vector<std::string> >("l1Seeds");
-    /* l1GtUtils_ = new l1t::L1TGlobalUtil(iConfig,consumesCollector());*/	
-   l1GtUtils_ = std::make_unique<l1t::L1TGlobalUtil>(
-    iConfig, consumesCollector(), *this, algInputTag_, extInputTag_, l1t::UseEventSetupIn::Event);
-  }
-  else {
-    l1Seeds_ = std::vector<std::string>();
-    l1GtUtils_ = 0;
-  }
 
  // Access the TFileService
   edm::Service<TFileService> fs;
@@ -285,6 +260,9 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
   Handle<GenParticleCollection> genpartH;
   iEvent.getByToken(genpartsToken, genpartH);
 
+  Handle<GenJetCollection> genjetH;
+  iEvent.getByToken(genjetToken, genjetH);
+
   // Create AK8 Jet
   vector<PseudoJet> fj_part;
   fj_part.reserve(pfcandsParticleNetH->size());
@@ -309,13 +287,70 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
   ClusterSequenceArea ak8_cs(fj_part, ak8_def, area_def);
   vector<PseudoJet> ak8_jets = sorted_by_pt(ak8_cs.inclusive_jets(170.0));
 
-  cout << "Number of jets: " << ak8_jets.size() << endl;
+  // Match AK8 jets to GEN jets
+  std::map<int, reco::GenJet> resultMap;
+  std::vector<int> unmatchedJets;
+  std::vector<std::tuple<int, int, float> > pairList;
 
+  int ak8_jet_idx = 0;
+  if (debug) std::cout << "dR loop:" << std::endl;
+
+  for(unsigned int i=0; i<ak8_jets.size(); i++) {
+    if (debug && ak8_jet_idx > debug_match_numJets) break;
+    bool found_match = false;
+    for(unsigned int j=0; j<genjetH->size(); j++) {
+      float dR = reco::deltaR(ak8_jets[i].eta(), ak8_jets[i].phi(), (*genjetH)[j].eta(), (*genjetH)[j].phi());
+      if (debug) std::cout << i << " " << j << " " << dR << " " << ak8_jets[i].pt() << std::endl;
+      if(dR < 0.8) {
+        pairList.push_back(std::make_tuple(i, j, dR));
+        found_match = true;
+      }
+    }
+    ak8_jet_idx++;
+    if(!found_match) {
+       unmatchedJets.push_back(i);
+    }
+  }
+
+  if (debug) {
+    std::cout << "\nunmatchedJets loop:" << std::endl;
+    for(auto &j: unmatchedJets) {
+      std::cout << j << std::endl;
+    }
+    std::cout << "\npairList loop:" << std::endl;
+  }
+
+  std::sort(pairList.begin(), pairList.end(), [](std::tuple<int, int, float> t1, std::tuple<int, int, float> t2){ return std::get<2>(t1) < std::get<2>(t2); });
+
+  while(pairList.size() > 0) {
+    if (debug) std::cout << std::get<0>(pairList[0]) << " " << std::get<1>(pairList[0]) << " " << std::get<2>(pairList[0]) << std::endl;
+
+    reco::GenJet genjet_assn = (*genjetH)[std::get<1>(pairList[0])];
+    resultMap[std::get<0>(pairList[0])] = genjet_assn;
+    for(unsigned int k=1; k<pairList.size(); k++) {
+      if(std::get<0>(pairList[k]) == std::get<0>(pairList[0]) ||
+         std::get<1>(pairList[k]) == std::get<1>(pairList[0])) {
+        pairList.erase(pairList.begin() + k);
+      }
+    }
+    pairList.erase(pairList.begin());
+  }
+
+  if (debug) {
+    std::cout << "\nresultMap loop:" << std::endl;
+    for(auto &r: resultMap) {
+      std::cout << r.first << std::endl;
+    }
+  }
+
+  if (debug) std::cout << "Number of jets: " << ak8_jets.size() << std::endl;
+
+  ak8_jet_idx = 0;
   for(auto &j: ak8_jets) {
 
     // Match AK8 jet to truth label
     auto ak8_label = ak8_match.flavorLabel(j, *genpartH, 0.8);
-    cout << "Label: " << ak8_label.first << endl;
+    if (debug) std::cout << "Label: " << ak8_label.first << std::endl;
     if ((ak8_label.first == FatJetMatching::QCD_all && !isQCD) || (ak8_label.first != FatJetMatching::QCD_all && isQCD)) continue;
 
     float etasign = j.eta() > 0 ? 1 : -1;
@@ -379,7 +414,24 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
     fj_n2b1 = N2(sd_ak8);
 
     fj_gen_mass = (ak8_label.first < FatJetMatching::QCD_all && ak8_label.second) ? ak8_label.second->mass() : 0;
-    fj_genjet_sdmass = 0.0;
+
+    if (ak8_label.first == FatJetMatching::QCD_all) {
+
+       if(std::find(unmatchedJets.begin(), unmatchedJets.end(), ak8_jet_idx) != unmatchedJets.end()) {
+         if (debug) std::cout << "\nUnmatched!" << std::endl;
+         fj_genjet_sdmass = -99;
+
+       } else {
+         
+         if (debug) std::cout << "\nMatched!" << std::endl;
+         fj_genjet_sdmass = resultMap[ak8_jet_idx].mass();
+
+       }
+
+    } else {
+
+       fj_genjet_sdmass = 0;
+    }
 
     event_no = iEvent.id().event();
 
@@ -420,34 +472,6 @@ void ScoutingNanoAOD::endJob() {
 }
 
 void ScoutingNanoAOD::beginRun(edm::Run const& iRun, edm::EventSetup const& iSetup) {
-  // HLT paths
-
-  triggerPathsVector.push_back("DST_DoubleMu1_noVtx_CaloScouting_v*");
-  triggerPathsVector.push_back("DST_DoubleMu3_noVtx_CaloScouting_v*");
-  triggerPathsVector.push_back("DST_DoubleMu3_noVtx_Mass10_PFScouting_v*");
-  triggerPathsVector.push_back("DST_L1HTT_CaloScouting_PFScouting_v*");
-  triggerPathsVector.push_back("DST_CaloJet40_CaloScouting_PFScouting_v*");
-  triggerPathsVector.push_back("DST_HT250_CaloScouting_v*");
-  triggerPathsVector.push_back("DST_HT410_PFScouting_v*");
-  triggerPathsVector.push_back("DST_HT450_PFScouting_v*");
-
-  HLTConfigProvider hltConfig;
-  bool changedConfig = false;
-  hltConfig.init(iRun, iSetup, triggerResultsTag.process(), changedConfig);
-
-  for (size_t i = 0; i < triggerPathsVector.size(); i++) {
-    triggerPathsMap[triggerPathsVector[i]] = -1;
-  }
-
-  for(size_t i = 0; i < triggerPathsVector.size(); i++){
-    TPRegexp pattern(triggerPathsVector[i]);
-    for(size_t j = 0; j < hltConfig.triggerNames().size(); j++){
-      std::string pathName = hltConfig.triggerNames()[j];
-      if(TString(pathName).Contains(pattern)){
-	triggerPathsMap[triggerPathsVector[i]] = j;
-      }
-    }
-  }
 }
 
 void ScoutingNanoAOD::endRun(edm::Run const&, edm::EventSetup const&) {
