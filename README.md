@@ -2,31 +2,23 @@ This repository creates jet-level ntuples for training ParticleNet used at the "
 
 ## Download and compile code
 
-The code was develop in `CMSSW_11_2_1_Patatrack`
+The code was develop in `CMSSW_12_3_0`
+
+Log into lxplus.
 
 ```
 1. prepare CMSSW release
 
-cmsrel CMSSW_11_2_1_Patatrack
-cd CMSSW_11_2_1_Patatrack/src
+cmsrel CMSSW_12_3_0
+cd CMSSW_12_3_0/src
 cmsenv
-git cms-init
-git cms-addpkg HLTrigger/JetMET DataFormats/Scouting
 ```
 
-Changes were made to the HLT Scouting producer, hence we need to re-run the Scouting reconstruction with the updated code
-
 ```
-2. download the updated CMSSW code
+2. clone this repository and compile
 
-git remote add alintulu git@github.com:alintulu/cmssw.git
-git fetch alintulu
-git checkout alintulu/CMSSW_11_2_1_Patatrack-ScoutPNet
-
-3. clone this repository and compile
-
-git clone git@github.com:alintulu/Run3ScoutingAnalysisTools.git -b particlenet-reco
-scram b
+git clone git@github.com:alintulu/Run3ScoutingAnalysisTools.git -b ak8jet-massregression
+scram b -j 8
 ```
 
 ## Re-run HLT step

@@ -48,7 +48,6 @@
 #include "DataFormats/Scouting/interface/Run3ScoutingTrack.h"
 #include "DataFormats/Scouting/interface/Run3ScoutingMuon.h"
 #include "DataFormats/Scouting/interface/Run3ScoutingParticle.h"
-#include "DataFormats/Scouting/interface/Run3ScoutingParticleParticleNet.h"
 
 #include "DataFormats/VertexReco/interface/Vertex.h"
 #include "DataFormats/VertexReco/interface/VertexFwd.h"
@@ -132,8 +131,9 @@ private:
   virtual void beginLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
   virtual void endLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
   virtual void clearVars();
+  bool isNeutralPdg(int);
   const edm::InputTag triggerResultsTag;
-  const edm::EDGetTokenT<std::vector<Run3ScoutingParticleParticleNet> >  	pfcandsParticleNetToken;
+  const edm::EDGetTokenT<std::vector<Run3ScoutingParticle> >  	pfcandsParticleNetToken;
   const edm::EDGetTokenT<reco::GenParticleCollection>      genpartsToken;
 
   std::vector<std::string> triggerPathsVector;
@@ -190,21 +190,8 @@ private:
   float fj_n2b1;
 
   //ParticleNet Jet label
-  int label_Top_bcq;
-  int label_Top_bqq;
-  int label_Top_bc;
-  int label_Top_bq;
-  int label_W_cq;
-  int label_W_qq;
-  int label_Z_bb;
-  int label_Z_cc;
-  int label_Z_qq;
-  int label_H_bb;
-  int label_H_cc;
-  int label_H_qqqq;
-  int label_H_tautau;
-  int label_H_qq;
-  int label_QCD_all;
+  float fj_gen_mass;
+  float fj_genjet_sdmass;
 
   //Event number
   int event_no;
@@ -213,7 +200,7 @@ private:
 };
 
 ScoutingNanoAOD::ScoutingNanoAOD(const edm::ParameterSet& iConfig):
-  pfcandsParticleNetToken  (consumes<std::vector<Run3ScoutingParticleParticleNet> > (iConfig.getParameter<edm::InputTag>("pfcandsParticleNet"))),
+  pfcandsParticleNetToken  (consumes<std::vector<Run3ScoutingParticle> > (iConfig.getParameter<edm::InputTag>("pfcandsParticleNet"))),
   genpartsToken            (consumes<reco::GenParticleCollection> (iConfig.getParameter<edm::InputTag>("genpart"))),
   isQCD                    (iConfig.existsAs<bool>("isQCD") ? iConfig.getParameter<bool>("isQCD") : false)
 {
@@ -267,26 +254,22 @@ ScoutingNanoAOD::ScoutingNanoAOD(const edm::ParameterSet& iConfig):
   tree->Branch("fj_msd", &fj_msd);
   tree->Branch("fj_n2b1", &fj_n2b1);
 
-  tree->Branch("label_Top_bcq", &label_Top_bcq);
-  tree->Branch("label_Top_bqq", &label_Top_bqq);
-  tree->Branch("label_Top_bc", &label_Top_bc);
-  tree->Branch("label_Top_bq", &label_Top_bq);
-  tree->Branch("label_W_cq", &label_W_cq);
-  tree->Branch("label_W_qq", &label_W_qq);
-  tree->Branch("label_Z_bb", &label_Z_bb);
-  tree->Branch("label_Z_cc", &label_Z_cc);
-  tree->Branch("label_Z_qq", &label_Z_qq);
-  tree->Branch("label_H_bb", &label_H_bb);
-  tree->Branch("label_H_cc", &label_H_cc);
-  tree->Branch("label_H_qqqq", &label_H_qqqq);
-  tree->Branch("label_H_tautau", &label_H_tautau);
-  tree->Branch("label_H_qq", &label_H_qq);
-  tree->Branch("label_QCD_all", &label_QCD_all);
+  tree->Branch("fj_gen_mass", &fj_gen_mass);
+  tree->Branch("fj_genjet_sdmass", &fj_genjet_sdmass);
 
   tree->Branch("event_no", &event_no);
 }
 
 ScoutingNanoAOD::~ScoutingNanoAOD() {
+}
+
+bool ScoutingNanoAOD::isNeutralPdg(int pdgId) {
+   const int neutralPdgs_array[] = {9, 21, 22, 23, 25, 12, 14, 16, 111, 130, 310, 311, 421, 511, 2112}; // gluon, gluon, gamma, Z0, higgs, electron neutrino, muon neutrino, tau neutrino, pi0, K0_L, K0_S; K0, neutron
+   const std::vector<int> neutralPdgs(neutralPdgs_array, neutralPdgs_array + sizeof(neutralPdgs_array) / sizeof(int));
+   if (std::find(neutralPdgs.begin(), neutralPdgs.end(), std::abs(pdgId)) == neutralPdgs.end())
+     return false;
+ 
+   return true;
 }
 
 void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup) {
@@ -296,7 +279,7 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
   using namespace fastjet;
   using namespace fastjet::contrib;
 
-  Handle<vector<Run3ScoutingParticleParticleNet> > pfcandsParticleNetH;
+  Handle<vector<Run3ScoutingParticle> > pfcandsParticleNetH;
   iEvent.getByToken(pfcandsParticleNetToken, pfcandsParticleNetH);
 
   Handle<GenParticleCollection> genpartH;
@@ -349,7 +332,7 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
     const vector<PseudoJet> constituents = j.constituents();
     for (auto &cand : constituents) {
       // Match PseudoJet constituent to PF candidate
-      auto *reco_cand = dynamic_cast<const Run3ScoutingParticleParticleNet*> (&pfcandsParticleNetH->at(cand.user_index()));
+      auto *reco_cand = dynamic_cast<const Run3ScoutingParticle*> (&pfcandsParticleNetH->at(cand.user_index()));
       // The following is needed to compute btagEtaRel, btagPtRatio and btagPParRatio
       float trk_px = reco_cand->trk_pt() * cos(reco_cand->trk_phi());
       float trk_py = reco_cand->trk_pt() * sin(reco_cand->trk_phi());
@@ -364,7 +347,11 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
       pfcand_etarel.push_back(etasign * (reco_cand->eta() - j.eta()));
       pfcand_phirel.push_back(deltaPhi(reco_cand->phi(), j.phi()));
       pfcand_abseta.push_back(abs(reco_cand->eta()));
-      pfcand_charge.push_back(reco_cand->charge());
+      if (isNeutralPdg(reco_cand->pdgId())) {
+         pfcand_charge.push_back(0);
+      } else {
+         pfcand_charge.push_back(abs(reco_cand->pdgId())/reco_cand->pdgId());
+      }
       pfcand_isEl.push_back(abs(reco_cand->pdgId()) == 11);
       pfcand_isMu.push_back(abs(reco_cand->pdgId()) == 13);
       pfcand_isGamma.push_back(abs(reco_cand->pdgId()) == 22);
@@ -391,21 +378,8 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
     fj_msd = sd_ak8.m();
     fj_n2b1 = N2(sd_ak8);
 
-    label_Top_bcq = (ak8_label.first == FatJetMatching::Top_bcq);
-    label_Top_bqq = (ak8_label.first == FatJetMatching::Top_bqq);
-    label_Top_bc = (ak8_label.first == FatJetMatching::Top_bc);
-    label_Top_bq = (ak8_label.first == FatJetMatching::Top_bq);
-    label_W_cq = (ak8_label.first == FatJetMatching::W_cq);
-    label_W_qq = (ak8_label.first == FatJetMatching::W_qq);
-    label_Z_bb = (ak8_label.first == FatJetMatching::Z_bb);
-    label_Z_cc = (ak8_label.first == FatJetMatching::Z_cc);
-    label_Z_qq = (ak8_label.first == FatJetMatching::Z_qq);
-    label_H_bb = (ak8_label.first == FatJetMatching::H_bb);
-    label_H_cc = (ak8_label.first == FatJetMatching::H_cc);
-    label_H_qqqq = (ak8_label.first == FatJetMatching::H_qqqq);
-    label_H_tautau = (ak8_label.first == FatJetMatching::H_tautau);
-    label_H_qq = (ak8_label.first == FatJetMatching::H_qq);
-    label_QCD_all = (ak8_label.first == FatJetMatching::QCD_all);
+    fj_gen_mass = (ak8_label.first < FatJetMatching::QCD_all && ak8_label.second) ? ak8_label.second->mass() : 0;
+    fj_genjet_sdmass = 0.0;
 
     event_no = iEvent.id().event();
 
