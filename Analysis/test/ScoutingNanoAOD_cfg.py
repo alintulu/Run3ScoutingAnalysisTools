@@ -75,7 +75,7 @@ params.parseArguments()
 
 # Message Logger settings
 process.load("FWCore.MessageService.MessageLogger_cfi")
-process.MessageLogger.destinations = ['cout', 'cerr']
+#process.MessageLogger.destinations = ['cout', 'cerr']
 process.MessageLogger.cerr.FwkReport.reportEvery = 5
 
 # Set the process options -- Display summary at the end, enable unscheduled execution
@@ -86,13 +86,11 @@ process.options = cms.untracked.PSet(
 )
 
 # How many events to process
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(100) )
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(params.maxEvents) )
 
 # Input EDM files
 process.source = cms.Source("PoolSource",
-	fileNames = cms.untracked.vstring([
-	'root://cms-xrd-global.cern.ch//store/group/dpg_trigger/comm_trigger/TriggerStudiesGroup/Scouting/Run3/ML_210512/SMS-T1qqqq_TuneCP5_14TeV-pythia8/ML_210512/210519_133149/0000/scouting_1.root'
-	])
+	fileNames = cms.untracked.vstring(params.inputFiles)
 )
 
 # Load the standard set of configuration modules
@@ -115,7 +113,7 @@ else :
 
 # Define the services needed for the treemaker
 process.TFileService = cms.Service("TFileService",
-    fileName = cms.string("scout16_3.root")
+    fileName = cms.string(params.outputFile)
 )
 
 # Tree for the generator weights
@@ -128,12 +126,13 @@ process.gentree = cms.EDAnalyzer("LHEWeightsTreeMaker",
 '''
 
 #from DarkPhotonAnalysis.DimuonAnalysis2018.TriggerPaths_cfi import getL1Conf
-L1Info = ['L1_DoubleMu4p5er2p0_SQ_OS_Mass_Min7', 'L1_DoubleMu_12_5','L1_DoubleMu_15_7','L1_TripleMu_5_3_3','L1_TripleMu_5_5_3','L1_QuadMu0','L1_DoubleMu0er1p5_SQ_OS_dR_Max1p4','L1_DoubleMu4p5er2p0_SQ_OS_Mass7to18','L1_DoubleMu4_SQ_OS_dR_Max1p2','L1_SingleMu22','L1_DoubleMu0er1p4_SQ_OS_dR_Max1p4','L1_DoubleMu4p5_SQ_OS_dR_Max1p2','L1_DoubleMu4p5_SQ_OS','L1_DoubleMu0er1p5_SQ_dR_Max1p4','L1_DoubleMu0er2p0_SQ_dR_Max1p4','L1_DoubleMu0_SQ']
+L1Info = ['L1_DoubleMu_12_5', 'L1_DoubleMu_15_7' ,'L1_HTT200er', 'L1_HTT255er', 'L1_HTT280er', 'L1_HTT320er', 'L1_HTT360er', 'L1_ETT2000', 'L1_HTT400er', 'L1_HTT450er', 'L1_SingleJet180', 'L1_SingleJet200', 'L1_DoubleJet30er2p5_Mass_Min300_dEta_Max1p5', 'L1_DoubleJet30er2p5_Mass_Min330_dEta_Max1p5', 'L1_DoubleJet30er2p5_Mass_Min360_dEta_Max1p5', 'L1_DoubleMu4p5er2p0_SQ_OS_Mass_Min7', 'L1_DoubleMu4_SQ_OS_dR_Max1p2', 'L1_SingleLooseIsoEG28er2p1', 'L1_DoubleEG_LooseIso18_LooseIso12_er1p5']
+
 # Make tree
 process.mmtree = cms.EDAnalyzer('ScoutingNanoAOD',
 
     	triggerresults   = cms.InputTag("TriggerResults", "", params.trigProcess),
-        doL1 = cms.bool(False),
+        doL1 = cms.bool(True),
         triggerConfiguration = cms.PSet(
     		hltResults            = cms.InputTag('TriggerResults','','HLT'),
     		l1tResults            = cms.InputTag(''),
@@ -157,4 +156,4 @@ process.mmtree = cms.EDAnalyzer('ScoutingNanoAOD',
     	#geneventinfo     = cms.InputTag("generator"),
 
 )
-process.p = cms.Path(                  process.mmtree)
+process.p = cms.Path(process.gtStage2Digis*process.mmtree)

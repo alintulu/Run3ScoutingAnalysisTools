@@ -103,6 +103,7 @@
 #include "fastjet/contrib/EnergyCorrelator.hh"
 #include "fastjet/JadePlugin.hh"
 #include "fastjet/contrib/SoftKiller.hh"
+#include "SimGeneral/HepPDTRecord/interface/ParticleDataTable.h"
 
 using namespace std;
 
@@ -145,6 +146,7 @@ private:
 	
   bool doL1;       
   triggerExpression::Data triggerCache_;
+  const edm::ESGetToken<HepPDT::ParticleDataTable, edm::DefaultRecord> particleTableToken;
       
 	
   // Generator-level information
@@ -264,8 +266,9 @@ private:
   vector<Float16_t>         pfcandeta;
   vector<Float16_t>         pfcandphi;
   vector<Float16_t>	    pfcandm;
-  vector<Float16_t>	    pfcandpdgid;
+  vector<int>   	    pfcandpdgid;
   vector<Float16_t>	    pfcandvertex;
+  vector<Float16_t>	    pfcandcharge;
 
   UInt_t n_fatjet;
   vector<Float16_t> FatJet_area;
@@ -305,7 +308,8 @@ ScoutingNanoAOD::ScoutingNanoAOD(const edm::ParameterSet& iConfig):
 //  pileupInfoToken          (consumes<std::vector<PileupSummaryInfo> >        (iConfig.getParameter<edm::InputTag>("pileupinfo"))),
 //  gensToken                (consumes<std::vector<reco::GenParticle> >        (iConfig.getParameter<edm::InputTag>("gens"))),
   //genEvtInfoToken          (consumes<GenEventInfoProduct>                    (iConfig.getParameter<edm::InputTag>("geneventinfo"))),    
-  doL1                     (iConfig.existsAs<bool>("doL1")               ?    iConfig.getParameter<bool>  ("doL1")            : false)
+  doL1                     (iConfig.existsAs<bool>("doL1")               ?    iConfig.getParameter<bool>  ("doL1")            : false),
+  particleTableToken       (esConsumes<HepPDT::ParticleDataTable, edm::DefaultRecord>())
 {
   usesResource("TFileService");
   if (doL1) {
@@ -373,6 +377,7 @@ tree->Branch("Electron_sigmaietaieta"       ,&Electron_sigmaietaieta 	 );
   tree->Branch("pfcandm"            	   ,&pfcandm 		 );
   tree->Branch("pfcandpdgid"               ,&pfcandpdgid		 );
   tree->Branch("pfcandvertex"              ,&pfcandvertex 	 );
+  tree->Branch("pfcandcharge"              ,&pfcandcharge 	 );
 
   tree->Branch("n_mu"            	   ,&n_mu 			, "n_mu/i"		);
   tree->Branch("Muon_pt", &Muon_pt	);
@@ -486,6 +491,8 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
   run = iEvent.eventAuxiliary().run();
   lumSec = iEvent.eventAuxiliary().luminosityBlock();
 
+  auto pdt = iSetup.getHandle(particleTableToken);
+  const HepPDT::ParticleDataTable* pdTable = pdt.product();
 
   // Which triggers fired
   for (size_t i = 0; i < triggerPathsVector.size(); i++) {
@@ -503,8 +510,8 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
   Jet_constituents.clear();
   //0.1396
   //built transient tracks, check Vertex fitting
-  edm::ESHandle<TransientTrackBuilder> theB;
-  iSetup.get<TransientTrackRecord>().get("TransientTrackBuilder", theB);
+  //edm::ESHandle<TransientTrackBuilder> theB;
+  //iSetup.get<TransientTrackRecord>().get("TransientTrackBuilder", theB);
 
   vector<TransientTrack> t_tks;
   std::unique_ptr<VertexCollection> vertexCollection(new VertexCollection());
@@ -597,14 +604,20 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
       pfcandpt.push_back(MiniFloatConverter::float16to32(MiniFloatConverter::float32to16(pfcands_iter->pt())));
       pfcandeta.push_back(MiniFloatConverter::float16to32(MiniFloatConverter::float32to16(pfcands_iter->eta())));
       pfcandphi.push_back(MiniFloatConverter::float16to32(MiniFloatConverter::float32to16(pfcands_iter->phi())));
-    pfcandm.push_back(pfcands_iter->m());
+    auto pfm = pdTable->particle(HepPDT::ParticleID(pfcands_iter->pdgId())) != nullptr
+                        ? pdTable->particle(HepPDT::ParticleID(pfcands_iter->pdgId()))->mass()
+                        : -99.f;
+    pfcandm.push_back(pfm);
     pfcandpdgid.push_back(pfcands_iter->pdgId());
     pfcandvertex.push_back(pfcands_iter->vertex());
-    PseudoJet temp_jet = PseudoJet(0, 0, 0, 0);
-    temp_jet.reset_PtYPhiM(pfcands_iter->pt(), pfcands_iter->eta(), pfcands_iter->phi(), pfcands_iter->m());
-    temp_jet.set_user_index(pfcands_iter->pdgId());
-    fj_part.push_back(temp_jet);
-
+    pfcandcharge.push_back(pdTable->particle(HepPDT::ParticleID(pfcands_iter->pdgId())) != nullptr
+                        ? pdTable->particle(HepPDT::ParticleID(pfcands_iter->pdgId()))->charge()
+                        : -99.f);
+    if (pfm > -1) { 
+       math::PtEtaPhiMLorentzVector p4(pfcands_iter->pt(), pfcands_iter->eta(), pfcands_iter->phi(), pfm);
+       fj_part.emplace_back(p4.px(), p4.py(), p4.pz(), p4.energy());
+       fj_part.back().set_user_index(pfcands_iter->pdgId());
+    }
     n_pfcand++;
   } 
 
@@ -718,13 +731,15 @@ for (auto muons_iter = muonsH->begin(); muons_iter != muonsH->end(); ++muons_ite
   
  if (doL1) {
     l1GtUtils_->retrieveL1(iEvent,iSetup,algToken_);
-    	for( int r = 0; r<280; r++){
-	string name ("empty");
-	bool algoName_ = false;
-	algoName_ = l1GtUtils_->getAlgNameFromBit(r,name);
-	cout << "getAlgNameFromBit = " << algoName_  << endl;
-	cout << "L1 bit number = " << r << " ; L1 bit name = " << name << endl;
-	}
+     if (false) {
+       for( int r = 0; r<280; r++){
+          string name ("empty");
+          bool algoName_ = false;
+          algoName_ = l1GtUtils_->getAlgNameFromBit(r,name);
+          cout << "getAlgNameFromBit = " << algoName_  << endl;
+          cout << "L1 bit number = " << r << " ; L1 bit name = " << name << endl;
+       }
+    }
     for( unsigned int iseed = 0; iseed < l1Seeds_.size(); iseed++ ) {
       bool l1htbit = 0;	
 			
@@ -823,6 +838,7 @@ void ScoutingNanoAOD::clearVars(){
   pfcandm.clear();
   pfcandpdgid.clear();
   pfcandvertex.clear();
+  pfcandcharge.clear();
   FatJet_area.clear();
   FatJet_eta.clear();
   FatJet_n2b1.clear();
@@ -836,6 +852,7 @@ void ScoutingNanoAOD::clearVars(){
   FatJet_mass.clear();
   FatJet_msoftdrop.clear();
   FatJet_mtrim.clear();
+  l1Result_.clear();
 }
 
 void ScoutingNanoAOD::beginJob() {

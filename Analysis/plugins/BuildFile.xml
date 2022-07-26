@@ -13,4 +13,5 @@
 <use name="fastjet"/>
 <use name="fastjet-contrib"/>
 <use name="root"/>
+<use name="SimGeneral/HepPDTRecord"/>
 <flags EDM_PLUGIN="1"/>
