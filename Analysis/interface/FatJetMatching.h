@@ -78,6 +78,11 @@ public:
 //   std::pair<FatJetFlavor, const reco::GenParticle*> flavorJMAR(const fastjet::PseudoJet jet, const reco::GenParticleCollection& genParticles, double genRadius = 0.6);
 
   std::pair<FatJetLabel, const reco::GenParticle*> flavorLabel(const fastjet::PseudoJet jet, const reco::GenParticleCollection& genParticles, double distR);
+  const reco::GenParticle* getFinal(const reco::GenParticle* particle);
+  bool isHadronic(const reco::GenParticle* particle) const;
+  std::vector<const reco::GenParticle*> getDaughterQuarks(const reco::GenParticle* particle);
+  void printGenInfoHeader() const;
+  void printGenParticleInfo(const reco::GenParticle* genParticle, const int idx) const;
 
 private:
   std::pair<FatJetLabel, const reco::GenParticle*> top_label(const fastjet::PseudoJet jet, const reco::GenParticle *parton, double distR);
@@ -87,12 +92,7 @@ private:
   std::pair<FatJetLabel, const reco::GenParticle*> qcd_label(const fastjet::PseudoJet jet, const reco::GenParticleCollection& genParticles, double distR);
 
 
-private:
-  void printGenInfoHeader() const;
-  void printGenParticleInfo(const reco::GenParticle* genParticle, const int idx) const;
-  const reco::GenParticle* getFinal(const reco::GenParticle* particle);
-  bool isHadronic(const reco::GenParticle* particle) const;
-  std::vector<const reco::GenParticle*> getDaughterQuarks(const reco::GenParticle* particle);
+//private:
 //   template <typename T>
 //   double maxDeltaRToDaughterQuarks(const T *center, const reco::GenParticle* mother) const {
 //     // mother particle needs to be the final version before decay

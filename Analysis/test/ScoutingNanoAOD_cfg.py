@@ -4,13 +4,6 @@ import FWCore.ParameterSet.Config as cms
 from FWCore.ParameterSet.VarParsing import VarParsing
 params = VarParsing('analysis')
 
-params.register('inputDataset',
-    '',
-    VarParsing.multiplicity.singleton,
-    VarParsing.varType.string,
-    "Input dataset"
-)
-
 # Define the process
 process = cms.Process("LL")
 
@@ -47,32 +40,9 @@ process.TFileService = cms.Service("TFileService",
     fileName = cms.string(params.outputFile)
 )
 
-# Create softdrop groomed GEN jets
-from RecoJets.JetProducers.ak8GenJets_cfi import ak8GenJets
-process.ak8GenJetsWithNu = ak8GenJets.clone(
-    src='packedGenParticles',
-    rParam=cms.double(0.8),
-    jetPtMin=100.0
-)
-
-process.ak8GenJetsWithNuSoftDrop = process.ak8GenJetsWithNu.clone(
-    useSoftDrop=cms.bool(True),
-    zcut=cms.double(0.1),
-    beta=cms.double(0.0),
-    R0=cms.double(0.8),
-    useExplicitGhosts=cms.bool(True)
-)
-
-process.genJetSeq = cms.Sequence(
-    process.ak8GenJetsWithNu+
-    process.ak8GenJetsWithNuSoftDrop
-)
-
 # Make tree
 process.mmtree = cms.EDAnalyzer('ScoutingNanoAOD',
         pfcandsParticleNet = cms.InputTag("hltScoutingPFPacker"),
-        genpart          = cms.InputTag("prunedGenParticles"),
-        isQCD            = cms.bool( '/QCD_' in params.inputDataset ),
-        ak8genjet        = cms.InputTag('ak8GenJetsWithNuSoftDrop'),
+        genpart          = cms.InputTag("prunedGenParticles")
 )
-process.p = cms.Path(process.genJetSeq*process.mmtree)
+process.p = cms.Path(process.mmtree)
