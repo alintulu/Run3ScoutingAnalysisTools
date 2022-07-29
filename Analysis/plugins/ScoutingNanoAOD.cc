@@ -138,23 +138,54 @@ private:
   const edm::InputTag triggerResultsTag;
   const edm::EDGetTokenT<std::vector<Run3ScoutingParticle> >  	pfcandsParticleNetToken;
   const edm::EDGetTokenT<reco::GenParticleCollection>      genpartsToken;
+  const edm::EDGetTokenT<double>  	pfMetToken;
+  const edm::EDGetTokenT<std::vector<Run3ScoutingMuon> >      muonsToken;
+  const edm::EDGetTokenT<std::vector<Run3ScoutingPFJet> >  	pfjetsToken;
 
 
   // TTree carrying the event weight information
   TTree* tree;
 
-  vector<Float16_t> fj_1_dr_T;
-  vector<Float16_t> fj_1_dr_T_Wq_max;
-  vector<int> fj_1_T_Wq_max_pdgId;
-  vector<Float16_t> fj_1_dr_W_daus;
-  vector<Float16_t> fj_1_dr_T_b;
+  vector<Float16_t> fatjet_1_dr_T;
+  vector<Float16_t> fatjet_1_dr_T_Wq_max;
+  vector<int> fatjet_1_T_Wq_max_pdgId;
+  vector<Float16_t> fatjet_1_dr_W_daus;
+  vector<Float16_t> fatjet_1_dr_T_b;
+  vector<Float_t> muon_pt;
+  vector<Float_t> muon_eta;
+  vector<Float_t> muon_trk_dxy;
+  vector<Float_t> muon_trk_dz;
+  vector<Float_t> muon_m;
+  vector<Float_t> muon_charge;
+  vector<Float_t> muon_type;
+  vector<Float_t> muon_phi;
+  vector<Float16_t> fatjet_area;
+  vector<Float16_t> fatjet_eta;
+  vector<Float16_t> fatjet_n2b1;
+  vector<Float16_t> fatjet_n3b1;
+  vector<Float16_t> fatjet_phi;
+  vector<Float16_t> fatjet_pt;
+  vector<Float16_t> fatjet_mass;
+  vector<Float16_t> fatjet_msoftdrop;
+  vector<Float16_t> fatjet_mregressed;
+  vector<Float16_t> fatjet_doubleBTag;
+  vector<Float_t> jet_pt;
+  vector<Float_t> jet_eta;
+  vector<Float_t> jet_phi;
+  vector<Float_t> jet_m;
+  vector<Float_t> jet_jetArea;
+  vector<Float_t> jet_bTagScore;
+  double met;
   
-  bool debug = true;
+  bool debug = false;
 };
 
 ScoutingNanoAOD::ScoutingNanoAOD(const edm::ParameterSet& iConfig):
   pfcandsParticleNetToken  (consumes<std::vector<Run3ScoutingParticle> > (iConfig.getParameter<edm::InputTag>("pfcandsParticleNet"))),
-  genpartsToken            (consumes<reco::GenParticleCollection> (iConfig.getParameter<edm::InputTag>("genpart")))
+  genpartsToken            (consumes<reco::GenParticleCollection> (iConfig.getParameter<edm::InputTag>("genpart"))),
+  pfMetToken             (consumes<double>(iConfig.getParameter<edm::InputTag>("met"))),
+  muonsToken               (consumes<std::vector<Run3ScoutingMuon> >             (iConfig.getParameter<edm::InputTag>("muons"))),
+  pfjetsToken              (consumes<std::vector<Run3ScoutingPFJet> >            (iConfig.getParameter<edm::InputTag>("pfjets")))
 {
   usesResource("TFileService");
 
@@ -164,11 +195,36 @@ ScoutingNanoAOD::ScoutingNanoAOD(const edm::ParameterSet& iConfig):
   // Create the TTree
   tree = fs->make<TTree>("tree", "tree");
 
-  tree->Branch("fj_1_dr_T",&fj_1_dr_T);
-  tree->Branch("fj_1_dr_T_Wq_max",&fj_1_dr_T_Wq_max);
-  tree->Branch("fj_1_T_Wq_max_pdgId",&fj_1_T_Wq_max_pdgId);
-  tree->Branch("fj_1_dr_W_daus",&fj_1_dr_W_daus);
-  tree->Branch("fj_1_dr_T_b",&fj_1_dr_T_b);
+  tree->Branch("fatjet_1_dr_T",&fatjet_1_dr_T);
+  tree->Branch("fatjet_1_dr_T_Wq_max",&fatjet_1_dr_T_Wq_max);
+  tree->Branch("fatjet_1_T_Wq_max_pdgId",&fatjet_1_T_Wq_max_pdgId);
+  tree->Branch("fatjet_1_dr_W_daus",&fatjet_1_dr_W_daus);
+  tree->Branch("fatjet_1_dr_T_b",&fatjet_1_dr_T_b);
+  tree->Branch("muon_pt", &muon_pt);
+  tree->Branch("muon_eta", &muon_eta);
+  tree->Branch("muon_trk_dxy", &muon_trk_dxy);
+  tree->Branch("muon_trk_dz", &muon_trk_dz);
+  tree->Branch("muon_m", &muon_m);
+  tree->Branch("muon_charge", &muon_charge);
+  tree->Branch("muon_type", &muon_type);
+  tree->Branch("muon_phi", &muon_phi);
+  tree->Branch("fatjet_area", &fatjet_area);
+  tree->Branch("fatjet_eta", &fatjet_eta);
+  tree->Branch("fatjet_n2b1", &fatjet_n2b1);
+  tree->Branch("fatjet_n3b1", &fatjet_n3b1);
+  tree->Branch("fatjet_phi", &fatjet_phi);
+  tree->Branch("fatjet_pt", &fatjet_pt);
+  tree->Branch("fatjet_mass", &fatjet_mass);
+  tree->Branch("fatjet_msoftdrop", &fatjet_msoftdrop);
+  tree->Branch("fatjet_mregressed", &fatjet_mregressed);
+  tree->Branch("fatjet_doubleBTag", &fatjet_doubleBTag);
+  tree->Branch("jet_pt", &jet_pt);
+  tree->Branch("jet_eta", &jet_eta);
+  tree->Branch("jet_phi", &jet_phi);
+  tree->Branch("jet_m", &jet_m);
+  tree->Branch("jet_jetArea", &jet_jetArea);
+  tree->Branch("jet_bTagScore", &jet_bTagScore);
+  tree->Branch("met", &met );
 }
 
 ScoutingNanoAOD::~ScoutingNanoAOD() {
@@ -180,7 +236,6 @@ std::pair<const reco::GenParticle*, double> ScoutingNanoAOD::closest(fastjet::Ps
  double drMin = 1e6;
  for (const auto &gp : gps) {
    double dr = reco::deltaR(jet.eta(), jet.phi(), gp->eta(), gp->phi());
-   if (debug) std::cout << gp->pdgId() << dr << std::endl;
    if (dr < drMin) {
      ret = dynamic_cast<const reco::GenParticle*>(&(*gp));
      drMin = dr;
@@ -203,6 +258,36 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
   Handle<GenParticleCollection> genpartH;
   iEvent.getByToken(genpartsToken, genpartH);
 
+  Handle<double> pfMetH;
+  iEvent.getByToken(pfMetToken, pfMetH);
+  met = *pfMetH;
+
+  Handle<vector<Run3ScoutingPFJet> > pfjetsH;
+  iEvent.getByToken(pfjetsToken, pfjetsH);
+
+  Handle<vector<Run3ScoutingMuon> > muonsH;
+  iEvent.getByToken(muonsToken, muonsH);
+
+  for (auto iter = muonsH->begin(); iter != muonsH->end(); ++iter) {
+    muon_pt.push_back(iter->pt());
+    muon_eta.push_back(iter->eta());
+    muon_phi.push_back(iter->phi());
+    muon_m.push_back(iter->m());
+    muon_type.push_back(iter->type());
+    muon_charge.push_back(iter->charge());
+    muon_trk_dxy.push_back(iter->trk_dxy());
+    muon_trk_dz.push_back(iter->trk_dz());
+  }
+
+  for (auto iter = pfjetsH->begin(); iter != pfjetsH->end(); ++iter) {
+    jet_pt.push_back(iter->pt());
+    jet_eta.push_back(iter->eta());
+    jet_phi.push_back(iter->phi());
+    jet_m.push_back(iter->m());
+    jet_jetArea.push_back(iter->jetArea()); 
+    jet_bTagScore.push_back(99.0);
+  }
+  
   // Create AK8 Jet
   vector<PseudoJet> fj_part;
   fj_part.reserve(pfcandsParticleNetH->size());
@@ -226,11 +311,12 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
   EnergyCorrelatorN3 N3=EnergyCorrelatorN3(1.0);
 
   ClusterSequenceArea ak8_cs(fj_part, ak8_def, area_def);
-  vector<PseudoJet> ak8_jets = sorted_by_pt(ak8_cs.inclusive_jets(170.0));
+  //vector<PseudoJet> ak8_jets = sorted_by_pt(ak8_cs.inclusive_jets(170.0));
+  vector<PseudoJet> ak8_jets = sorted_by_pt(ak8_cs.inclusive_jets());
 
   std::vector<const reco::GenParticle*> hadGenTops;
   std::vector<const reco::GenParticle*> hadGenWs;
-
+ 
   if (debug) {
     ak8_match.printGenInfoHeader();
     for(unsigned int j=0; j<genpartH->size(); j++) {
@@ -243,8 +329,11 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
   for(unsigned int j=0; j<genpartH->size(); j++) {
     const auto *gp = &(*genpartH)[j];
 
+    if (processed_.count(gp)) continue;
+    processed_.insert(gp);
+
     // Check if it is top
-    if (std::abs(gp->pdgId()) == 6) {
+    if (std::abs(gp->pdgId()) == 6 and gp->numberOfDaughters() != 1) {
       auto top = ak8_match.getFinal(gp);
 
       // Check the daughters of the top
@@ -257,7 +346,7 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
          // Check if the W decays hadronically
          if (ak8_match.isHadronic(w_from_top)) {
            hadGenTops.push_back(gp);
-           if (debug) std::cout << "Top -> Wx -> qqx" << std::endl;
+           if (debug) std::cout << j << " Top -> Wx -> qqx" << std::endl;
          }
       }
     // Check if it is the W
@@ -266,24 +355,44 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
         // Check if the W decays hadronically
         if(ak8_match.isHadronic(gp)) {
           hadGenWs.push_back(gp);
-          if (debug) std::cout << "W -> qq" << std::endl;
+          if (debug) std::cout << j << " W -> qq" << std::endl;
         }
      }
   }
 
+  if (debug) std::cout << "Number of jets: " << ak8_jets.size() << std::endl;
+
+  int i = 0;
   // Loop over jets
   for (auto &jet: ak8_jets) {
+
+    fatjet_area.push_back(jet.area());
+    fatjet_eta.push_back(jet.pseudorapidity());
+    fatjet_mass.push_back(jet.m());
+    fatjet_phi.push_back(jet.phi_std());
+    fatjet_pt.push_back(jet.pt());
+
+    PseudoJet sd_ak8 = sd_groomer(jet);
+    fatjet_msoftdrop.push_back(sd_ak8.m());
+    fatjet_n2b1.push_back(N2(sd_ak8));
+    fatjet_n3b1.push_back(N3(sd_ak8));
+    
+    fatjet_mregressed.push_back(-99.0);
+    fatjet_doubleBTag.push_back(-99.0);
+
+    i++;
+    if (debug) std::cout << i << " Jet pT: " << jet.pt() << std::endl;
     // Find closest top to jet
     auto closestT = closest(jet, hadGenTops, debug);
     auto genT = closestT.first;
     auto drT = closestT.second;
-    if (debug) std::cout << "deltaR(jet, top)   : " << drT << std::endl;
+    if (debug) std::cout << i <<" deltaR(jet, top)   : " << drT << std::endl;
 
     // Find closest W to jet
     auto closestW = closest(jet, hadGenWs, debug);
     auto genW = closestW.first;
     auto drW = closestW.second;
-    if (debug) std::cout << "deltaR(jet, W)   : " << drW << std::endl;
+    if (debug) std::cout << i << " deltaR(jet, W)   : " << drW << std::endl;
 
     if (genW) {
       auto wdaus = ak8_match.getDaughterQuarks(genW);
@@ -295,21 +404,22 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
       }
       if (debug) {
         using namespace std;
+        cout << "Wx -> qqx" << endl;
         cout << "deltaR(jet, q1)    : " << dr_q1 << endl;
         cout << "deltaR(jet, q2)    : " << dr_q2 << endl;
       }
-      fj_1_dr_W_daus.push_back(dr_q1);
+      fatjet_1_dr_W_daus.push_back(dr_q1);
     } else {
-      fj_1_dr_W_daus.push_back(99.0); 
+      fatjet_1_dr_W_daus.push_back(99.0); 
     }
 
-    fj_1_dr_T.push_back(drT);
+    fatjet_1_dr_T.push_back(drT);
 
     // If there is no top
     if (!genT) {
-      fj_1_dr_T_Wq_max.push_back(99.0);
-      fj_1_T_Wq_max_pdgId.push_back(0);
-      fj_1_dr_T_b.push_back(99.0);
+      fatjet_1_dr_T_Wq_max.push_back(99.0);
+      fatjet_1_T_Wq_max_pdgId.push_back(0);
+      fatjet_1_dr_T_b.push_back(99.0);
       continue;
     }
 
@@ -332,16 +442,20 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
         }
         if (debug) {
           using namespace std;
+          cout << i << " Top -> Wx -> qqx" << endl;
           cout << "deltaR(jet, q1)    : " << dr_q1 << endl;
           cout << "deltaR(jet, q2)    : " << dr_q2 << endl;
         }
-        fj_1_dr_T_Wq_max.push_back(dr_q1);
-        fj_1_T_Wq_max_pdgId.push_back(wdaus.at(0)->pdgId());
+        fatjet_1_dr_T_Wq_max.push_back(dr_q1);
+        fatjet_1_T_Wq_max_pdgId.push_back(wdaus.at(0)->pdgId());
       }
       if (b_from_top) {
         double dr_b = reco::deltaR(jet, *b_from_top);
-        fj_1_dr_T_b.push_back(dr_b);
-        if (debug) std::cout << "deltaR(jet, b)   : " << dr_b << std::endl;
+        fatjet_1_dr_T_b.push_back(dr_b);
+        if (debug) { 
+          cout << i << " Top -> bx" << endl;
+          std::cout << "deltaR(jet, b)   : " << dr_b << std::endl;
+        }
       } 
     }
   }
@@ -351,11 +465,35 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
 }
 
 void ScoutingNanoAOD::clearVars(){
-  fj_1_dr_T.clear();
-  fj_1_dr_T_Wq_max.clear();
-  fj_1_T_Wq_max_pdgId.clear();
-  fj_1_dr_W_daus.clear();
-  fj_1_dr_T_b.clear();
+  fatjet_1_dr_T.clear();
+  fatjet_1_dr_T_Wq_max.clear();
+  fatjet_1_T_Wq_max_pdgId.clear();
+  fatjet_1_dr_W_daus.clear();
+  fatjet_1_dr_T_b.clear();
+  fatjet_area.clear();
+  fatjet_eta.clear();
+  fatjet_mass.clear();
+  fatjet_phi.clear();
+  fatjet_pt.clear();
+  fatjet_msoftdrop.clear();
+  fatjet_n2b1.clear();
+  fatjet_n3b1.clear();
+  fatjet_doubleBTag.clear();
+  fatjet_mregressed.clear();
+  jet_pt.clear();
+  jet_eta.clear();
+  jet_phi.clear();
+  jet_m.clear();
+  jet_jetArea.clear();
+  jet_bTagScore.clear();
+  muon_pt.clear();
+  muon_eta.clear();
+  muon_phi.clear();
+  muon_m.clear();
+  muon_type.clear();
+  muon_charge.clear();
+  muon_trk_dxy.clear();
+  muon_trk_dz.clear();
 }
 
 void ScoutingNanoAOD::beginJob() {

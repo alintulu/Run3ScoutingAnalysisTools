@@ -43,6 +43,8 @@ process.TFileService = cms.Service("TFileService",
 # Make tree
 process.mmtree = cms.EDAnalyzer('ScoutingNanoAOD',
         pfcandsParticleNet = cms.InputTag("hltScoutingPFPacker"),
-        genpart          = cms.InputTag("prunedGenParticles")
+        muons            = cms.InputTag("hltScoutingMuonPacker"),
+        genpart          = cms.InputTag("prunedGenParticles"),
+        met            = cms.InputTag("hltScoutingPFPacker","pfMetPt"),
 )
 process.p = cms.Path(process.mmtree)
