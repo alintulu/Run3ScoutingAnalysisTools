@@ -79,6 +79,7 @@
 #include "DataFormats/Common/interface/RefToBase.h"
 #include "DataFormats/JetReco/interface/GenJet.h"
 #include "DataFormats/JetReco/interface/GenJetCollection.h"
+#include "DataFormats/JetReco/interface/PFJet.h"
 
 // Root include files
 #include "TLorentzVector.h"
@@ -110,6 +111,8 @@
 
 #include "Run3ScoutingAnalysisTools/Analysis/interface/FatJetMatching.h"
 
+#include "SimGeneral/HepPDTRecord/interface/ParticleDataTable.h"
+
 using namespace std;
 using namespace deepntuples;
 
@@ -135,81 +138,46 @@ private:
   virtual void clearVars();
   bool isNeutralPdg(int);
   const edm::InputTag triggerResultsTag;
-  const edm::EDGetTokenT<std::vector<Run3ScoutingParticle> >  	pfcandsParticleNetToken;
-  const edm::EDGetTokenT<reco::GenParticleCollection>      genpartsToken;
+  const edm::EDGetTokenT<std::vector<Run3ScoutingParticle> >  	scoutpartToken;
+  const edm::EDGetTokenT<reco::GenJetCollection> genjetToken;
+  const edm::EDGetTokenT<double>  	scoutrhoToken;
+  const edm::EDGetTokenT<std::vector<reco::PFJet> >  	hltjetToken;
+  const edm::EDGetTokenT<std::vector<reco::PFJet> >  	hltjetcorrToken;
+  const edm::EDGetTokenT<double>  	hltrhoToken;
+  const edm::ESGetToken<HepPDT::ParticleDataTable, edm::DefaultRecord> particleTableToken;
 
   // TTree carrying the event weight information
   TTree* tree;
 
-  //PFCand ParticleNet
-  vector<Float16_t> pfcand_pt_log_nopuppi;
-  vector<Float16_t> pfcand_e_log_nopuppi;
-  vector<Float16_t> pfcand_etarel;
-  vector<Float16_t> pfcand_phirel;
-  vector<Float16_t> pfcand_abseta;
-  vector<Float16_t> pfcand_charge;
-  vector<Float16_t> pfcand_isEl;
-  vector<Float16_t> pfcand_isMu;
-  vector<Float16_t> pfcand_isGamma;
-  vector<Float16_t> pfcand_isChargedHad;
-  vector<Float16_t> pfcand_isNeutralHad;
-  vector<Float16_t> pfcand_lostInnerHits;
-  vector<Float16_t> pfcand_normchi2;
-  vector<Float16_t> pfcand_quality;
-  vector<Float16_t> pfcand_dz;
-  vector<Float16_t> pfcand_dzsig;
-  vector<Float16_t> pfcand_dxy;
-  vector<Float16_t> pfcand_dxysig;
-  vector<Float16_t> pfcand_btagEtaRel;
-  vector<Float16_t> pfcand_btagPtRatio;
-  vector<Float16_t> pfcand_btagPParRatio;
+  vector<Float16_t> JetHLT_pt;
+  vector<Float16_t> JetHLT_mass;
+  vector<Float16_t> JetHLT_eta;
+  vector<Float16_t> JetHLT_ptGen;
+  vector<Float16_t> JetHLT_ptRaw;
+  vector<Float16_t> JetHLT_massRaw;
+  double JetHLT_rho;
+  vector<Float16_t> Jet_pt;
+  vector<Float16_t> Jet_mass;
+  vector<Float16_t> Jet_eta;
+  vector<Float16_t> Jet_ptGen;
+  vector<Float16_t> Jet_ptRaw;
+  vector<Float16_t> Jet_massRaw;
+  double Jet_rho;
 
-  //Jet kinematics
-  float fj_pt;
-  float fj_eta;
-  float fj_phi;
-  float fj_mass;
-  float fj_msd;
-  float fj_n2b1;
-  int fj_no;
-  int fj_npfcands;
+  bool debug = false;
+  unsigned int debug_match_numJets_HLT = 1000;
+  unsigned int debug_match_numJets_scout = 1000;
 
-  //ParticleNet Jet label
-  float fj_gen_mass;
-  float fj_genjet_sdmass;
-
-  int label_Top_bcq;
-  int label_Top_bqq;
-  int label_Top_bc;
-  int label_Top_bq;
-  int label_W_cq;
-  int label_W_qq;
-  int label_Z_bb;
-  int label_Z_cc;
-  int label_Z_qq;
-  int label_H_bb;
-  int label_H_cc;
-  int label_H_qqqq;
-  int label_H_tautau;
-  int label_H_qq;
-  int label_QCD_all;
-  int sample_isQCD;
-
-  //Event number
-  int event_no;
-
-  bool debug = true;
-  int debug_match_numJets = 5;
-
-  bool isQCD;
-  const edm::EDGetTokenT<reco::GenJetCollection> genjetToken;
 };
 
 ScoutingNanoAOD::ScoutingNanoAOD(const edm::ParameterSet& iConfig):
-  pfcandsParticleNetToken  (consumes<std::vector<Run3ScoutingParticle> > (iConfig.getParameter<edm::InputTag>("pfcandsParticleNet"))),
-  genpartsToken            (consumes<reco::GenParticleCollection> (iConfig.getParameter<edm::InputTag>("genpart"))),
-  isQCD                    (iConfig.existsAs<bool>("isQCD") ? iConfig.getParameter<bool>("isQCD") : false),
-  genjetToken                (consumes<reco::GenJetCollection>(iConfig.getParameter<edm::InputTag>("ak8genjet")))
+  scoutpartToken  (consumes<std::vector<Run3ScoutingParticle> > (iConfig.getParameter<edm::InputTag>("scoutpart"))),
+  genjetToken                (consumes<reco::GenJetCollection>(iConfig.getParameter<edm::InputTag>("ak8genjet"))),
+  scoutrhoToken             (consumes<double>(iConfig.getParameter<edm::InputTag>("scoutrho"))),
+  hltjetToken  (consumes<std::vector<reco::PFJet> > (iConfig.getParameter<edm::InputTag>("ak8hltjet"))),
+  hltjetcorrToken  (consumes<std::vector<reco::PFJet> > (iConfig.getParameter<edm::InputTag>("ak8hltcorrjet"))),
+  hltrhoToken             (consumes<double>(iConfig.getParameter<edm::InputTag>("hltrho"))),
+  particleTableToken       (esConsumes<HepPDT::ParticleDataTable, edm::DefaultRecord>())
 {
   usesResource("TFileService");
 
@@ -219,70 +187,24 @@ ScoutingNanoAOD::ScoutingNanoAOD(const edm::ParameterSet& iConfig):
   // Create the TTree
   tree = fs->make<TTree>("tree", "tree");
 
-  tree->Branch("pfcand_pt_log_nopuppi", &pfcand_pt_log_nopuppi);
-  tree->Branch("pfcand_e_log_nopuppi", &pfcand_e_log_nopuppi);
-  tree->Branch("pfcand_etarel", &pfcand_etarel);
-  tree->Branch("pfcand_phirel", &pfcand_phirel);
-  tree->Branch("pfcand_abseta", &pfcand_abseta);
-  tree->Branch("pfcand_charge", &pfcand_charge);
-  tree->Branch("pfcand_isEl", &pfcand_isEl);
-  tree->Branch("pfcand_isMu", &pfcand_isMu);
-  tree->Branch("pfcand_isGamma", &pfcand_isGamma);
-  tree->Branch("pfcand_isChargedHad", &pfcand_isChargedHad);
-  tree->Branch("pfcand_isNeutralHad", &pfcand_isNeutralHad);
-  tree->Branch("pfcand_lostInnerHits", &pfcand_lostInnerHits);
-  tree->Branch("pfcand_normchi2", &pfcand_normchi2);
-  tree->Branch("pfcand_quality", &pfcand_quality);
-  tree->Branch("pfcand_dz", &pfcand_dz);
-  tree->Branch("pfcand_dzsig", &pfcand_dzsig);
-  tree->Branch("pfcand_dxy", &pfcand_dxy);
-  tree->Branch("pfcand_dxysig", &pfcand_dxysig);
-  tree->Branch("pfcand_btagEtaRel", &pfcand_btagEtaRel);
-  tree->Branch("pfcand_btagPtRatio", &pfcand_btagPtRatio);
-  tree->Branch("pfcand_btagPParRatio", &pfcand_btagPParRatio);
+  tree->Branch("JetHLT_pt", &JetHLT_pt);
+  tree->Branch("JetHLT_mass", &JetHLT_mass);
+  tree->Branch("JetHLT_eta", &JetHLT_eta);
+  tree->Branch("JetHLT_ptGen", &JetHLT_ptGen);
+  tree->Branch("JetHLT_ptRaw", &JetHLT_ptRaw);
+  tree->Branch("JetHLT_massRaw", &JetHLT_massRaw);
+  tree->Branch("JetHLT_rho", &JetHLT_rho);
+  tree->Branch("Jet_pt", &Jet_pt);
+  tree->Branch("Jet_mass", &Jet_mass);
+  tree->Branch("Jet_eta", &Jet_eta);
+  tree->Branch("Jet_ptGen", &Jet_ptGen);
+  tree->Branch("Jet_ptRaw", &Jet_ptRaw);
+  tree->Branch("Jet_massRaw", &Jet_massRaw);
+  tree->Branch("Jet_rho", &Jet_rho);
 
-  tree->Branch("fj_pt", &fj_pt);
-  tree->Branch("fj_eta", &fj_eta);
-  tree->Branch("fj_phi", &fj_phi);
-  tree->Branch("fj_mass", &fj_mass);
-  tree->Branch("fj_msd", &fj_msd);
-  tree->Branch("fj_n2b1", &fj_n2b1);
-  tree->Branch("fj_no", &fj_no);
-  tree->Branch("fj_npfcands", &fj_npfcands);
-
-  tree->Branch("fj_gen_mass", &fj_gen_mass);
-  tree->Branch("fj_genjet_sdmass", &fj_genjet_sdmass);
-
-  tree->Branch("label_Top_bcq", &label_Top_bcq);
-  tree->Branch("label_Top_bqq", &label_Top_bqq);
-  tree->Branch("label_Top_bc", &label_Top_bc);
-  tree->Branch("label_Top_bq", &label_Top_bq);
-  tree->Branch("label_W_cq", &label_W_cq);
-  tree->Branch("label_W_qq", &label_W_qq);
-  tree->Branch("label_Z_bb", &label_Z_bb);
-  tree->Branch("label_Z_cc", &label_Z_cc);
-  tree->Branch("label_Z_qq", &label_Z_qq);
-  tree->Branch("label_H_bb", &label_H_bb);
-  tree->Branch("label_H_cc", &label_H_cc);
-  tree->Branch("label_H_qqqq", &label_H_qqqq);
-  tree->Branch("label_H_tautau", &label_H_tautau);
-  tree->Branch("label_H_qq", &label_H_qq);
-  tree->Branch("label_QCD_all", &label_QCD_all);
-  tree->Branch("sample_isQCD", &sample_isQCD);
-
-  tree->Branch("event_no", &event_no);
 }
 
 ScoutingNanoAOD::~ScoutingNanoAOD() {
-}
-
-bool ScoutingNanoAOD::isNeutralPdg(int pdgId) {
-   const int neutralPdgs_array[] = {9, 21, 22, 23, 25, 12, 14, 16, 111, 130, 310, 311, 421, 511, 2112}; // gluon, gluon, gamma, Z0, higgs, electron neutrino, muon neutrino, tau neutrino, pi0, K0_L, K0_S; K0, neutron
-   const std::vector<int> neutralPdgs(neutralPdgs_array, neutralPdgs_array + sizeof(neutralPdgs_array) / sizeof(int));
-   if (std::find(neutralPdgs.begin(), neutralPdgs.end(), std::abs(pdgId)) == neutralPdgs.end())
-     return false;
- 
-   return true;
 }
 
 void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup) {
@@ -292,21 +214,123 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
   using namespace fastjet;
   using namespace fastjet::contrib;
 
-  Handle<vector<Run3ScoutingParticle> > pfcandsParticleNetH;
-  iEvent.getByToken(pfcandsParticleNetToken, pfcandsParticleNetH);
-
-  Handle<GenParticleCollection> genpartH;
-  iEvent.getByToken(genpartsToken, genpartH);
+  Handle<vector<Run3ScoutingParticle> > scoutpartH;
+  iEvent.getByToken(scoutpartToken, scoutpartH);
 
   Handle<GenJetCollection> genjetH;
   iEvent.getByToken(genjetToken, genjetH);
 
-  // Create AK8 Jet
+  Handle<double> scoutrhoH;
+  iEvent.getByToken(scoutrhoToken, scoutrhoH);
+  Jet_rho = *scoutrhoH;
+
+  Handle<vector<reco::PFJet> > hltjetH;
+  iEvent.getByToken(hltjetToken, hltjetH);
+
+  Handle<vector<reco::PFJet> > hltjetcorrH;
+  iEvent.getByToken(hltjetcorrToken, hltjetcorrH);
+
+  Handle<double> hltrhoH;
+  iEvent.getByToken(hltrhoToken, hltrhoH);
+  JetHLT_rho = *hltrhoH;
+  //JetHLT_rho = 10;
+
+  auto pdt = iSetup.getHandle(particleTableToken);
+  const HepPDT::ParticleDataTable* pdTable = pdt.product();
+
+  std::cout << "HLT jets: " << hltjetH->size() << std::endl;
+  std::cout << "HLT corr jets: " << hltjetcorrH->size() << std::endl;
+
+  for(unsigned int j=0; j<hltjetcorrH->size(); j++) {
+    JetHLT_pt.push_back((*hltjetcorrH)[j].pt());
+    JetHLT_mass.push_back((*hltjetcorrH)[j].mass());
+  }
+
+  // Match HLT AK8 jets to GEN jets
+  std::map<int, reco::GenJet> resultMapHLT;
+  std::vector<int> unmatchedJetsHLT;
+  std::vector<std::tuple<int, int, float> > pairListHLT;
+
+  if (debug) std::cout << "dR loop:" << std::endl;
+
+  for(unsigned int i=0; i<hltjetH->size(); i++) {
+    if (debug && i > debug_match_numJets_HLT) break;
+    bool found_match = false;
+    for(unsigned int j=0; j<genjetH->size(); j++) {
+      float dR = reco::deltaR((*hltjetH)[i].eta(), (*hltjetH)[i].phi(), (*genjetH)[j].eta(), (*genjetH)[j].phi());
+      if (debug) std::cout << i << " " << j << " " << dR << " " << (*hltjetH)[i].pt() << " " << (*genjetH)[j].pt() << std::endl;
+      if(dR < 0.8) {
+        pairListHLT.push_back(std::make_tuple(i, j, dR));
+        found_match = true;
+      }
+    }
+    if(!found_match) {
+       unmatchedJetsHLT.push_back(i);
+    }
+  }
+
+  if (debug) {
+    std::cout << "\nunmatchedJets HLT loop:" << std::endl;
+    for(auto &j: unmatchedJetsHLT) {
+      std::cout << j << std::endl;
+    }
+    std::cout << "\npairList HLT loop:" << std::endl;
+  }
+
+  std::sort(pairListHLT.begin(), pairListHLT.end(), [](std::tuple<int, int, float> t1, std::tuple<int, int, float> t2){ return std::get<2>(t1) < std::get<2>(t2); });
+
+  while(pairListHLT.size() > 0) {
+    if (debug) std::cout << std::get<0>(pairListHLT[0]) << " " << std::get<1>(pairListHLT[0]) << " " << std::get<2>(pairListHLT[0]) << std::endl;
+
+    reco::GenJet genjet_assn = (*genjetH)[std::get<1>(pairListHLT[0])];
+    resultMapHLT[std::get<0>(pairListHLT[0])] = genjet_assn;
+    for(unsigned int k=1; k<pairListHLT.size(); k++) {
+      if(std::get<0>(pairListHLT[k]) == std::get<0>(pairListHLT[0]) ||
+         std::get<1>(pairListHLT[k]) == std::get<1>(pairListHLT[0])) {
+        pairListHLT.erase(pairListHLT.begin() + k);
+      }
+    }
+    pairListHLT.erase(pairListHLT.begin());
+  }
+
+  if (debug) {
+    std::cout << "\nresultMap HLT loop:" << std::endl;
+    for(auto &r: resultMapHLT) {
+      std::cout << r.first << std::endl;
+    }
+  }
+
+  for(unsigned int j=0; j<hltjetH->size(); j++) {
+    JetHLT_eta.push_back((*hltjetH)[j].eta());
+    JetHLT_ptRaw.push_back((*hltjetH)[j].pt());
+    JetHLT_massRaw.push_back((*hltjetH)[j].mass());
+   
+    if (debug && j > debug_match_numJets_HLT) continue;
+ 
+    if (std::find(unmatchedJetsHLT.begin(), unmatchedJetsHLT.end(), j) != unmatchedJetsHLT.end()) {
+
+      JetHLT_ptGen.push_back(-99);
+
+    } else {
+      
+      JetHLT_ptGen.push_back(resultMapHLT[j].pt());
+
+    }
+  }
+
+  // Create Scouting AK8 Jet
   vector<PseudoJet> fj_part;
-  fj_part.reserve(pfcandsParticleNetH->size());
+  fj_part.reserve(scoutpartH->size());
   int pfcand_i = 0;
-  for (auto pfcands_iter = pfcandsParticleNetH->begin(); pfcands_iter != pfcandsParticleNetH->end(); ++pfcands_iter) {
-    math::PtEtaPhiMLorentzVector p4(pfcands_iter->pt(), pfcands_iter->eta(), pfcands_iter->phi(), pfcands_iter->m());
+  for (auto pfcands_iter = scoutpartH->begin(); pfcands_iter != scoutpartH->end(); ++pfcands_iter) {
+
+    auto m = pdTable->particle(HepPDT::ParticleID(pfcands_iter->pdgId())) != nullptr
+                        ? pdTable->particle(HepPDT::ParticleID(pfcands_iter->pdgId()))->mass()
+                        : -99.f;
+
+    if (m < 0) continue;
+
+    math::PtEtaPhiMLorentzVector p4(pfcands_iter->pt(), pfcands_iter->eta(), pfcands_iter->phi(), m);
     fj_part.emplace_back(p4.px(), p4.py(), p4.pz(), p4.energy());
     fj_part.back().set_user_index(pfcand_i);
     pfcand_i++;
@@ -323,28 +347,28 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
   EnergyCorrelatorN2 N2 = EnergyCorrelatorN2(1.0);
 
   ClusterSequenceArea ak8_cs(fj_part, ak8_def, area_def);
-  vector<PseudoJet> ak8_jets = sorted_by_pt(ak8_cs.inclusive_jets(170.0));
+  vector<PseudoJet> ak8_jets = sorted_by_pt(ak8_cs.inclusive_jets());
 
-  // Match AK8 jets to GEN jets
+  std::cout << "Scouting jets: " << ak8_jets.size() << std::endl;
+
+  // Match Scouting AK8 jets to GEN jets
   std::map<int, reco::GenJet> resultMap;
   std::vector<int> unmatchedJets;
   std::vector<std::tuple<int, int, float> > pairList;
 
-  int ak8_jet_idx = 0;
   if (debug) std::cout << "dR loop:" << std::endl;
 
   for(unsigned int i=0; i<ak8_jets.size(); i++) {
-    if (debug && ak8_jet_idx > debug_match_numJets) break;
+    if (debug && i > debug_match_numJets_scout) break;
     bool found_match = false;
     for(unsigned int j=0; j<genjetH->size(); j++) {
       float dR = reco::deltaR(ak8_jets[i].eta(), ak8_jets[i].phi(), (*genjetH)[j].eta(), (*genjetH)[j].phi());
-      if (debug) std::cout << i << " " << j << " " << dR << " " << ak8_jets[i].pt() << std::endl;
+      if (debug) std::cout << i << " " << j << " " << dR << " " << ak8_jets[i].pt() << (*genjetH)[j].pt() << std::endl;
       if(dR < 0.8) {
         pairList.push_back(std::make_tuple(i, j, dR));
         found_match = true;
       }
     }
-    ak8_jet_idx++;
     if(!found_match) {
        unmatchedJets.push_back(i);
     }
@@ -381,141 +405,44 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
     }
   }
 
-  if (debug) std::cout << "Number of jets: " << ak8_jets.size() << std::endl;
+  for(unsigned int i=0; i<ak8_jets.size(); i++) {
 
-  ak8_jet_idx = 0;
-  for(auto &j: ak8_jets) {
+    Jet_pt.push_back(ak8_jets[i].pt());
+    Jet_mass.push_back(ak8_jets[i].m());
+    Jet_eta.push_back(ak8_jets[i].eta());
+    Jet_ptRaw.push_back(ak8_jets[i].pt());
+    Jet_massRaw.push_back(ak8_jets[i].m());
 
-    // Match AK8 jet to truth label
-    auto ak8_label = ak8_match.flavorLabel(j, *genpartH, 0.8);
-    if (debug) std::cout << "Label: " << ak8_label.first << std::endl;
-    //if ((ak8_label.first == FatJetMatching::QCD_all && !isQCD) || (ak8_label.first != FatJetMatching::QCD_all && isQCD)) continue;
+    if (debug && i > debug_match_numJets_scout) continue;
+    
+    if (std::find(unmatchedJets.begin(), unmatchedJets.end(), i) != unmatchedJets.end()) {
 
-    float etasign = j.eta() > 0 ? 1 : -1;
-
-    // The following is needed to compute btagEtaRel, btagPtRatio and btagPParRatio
-    float jet_px = j.pt() * cos(j.phi());
-    float jet_py = j.pt() * sin(j.phi());
-    float jet_pz = j.pt() * sinh(j.eta());
-    math::XYZVector jet_dir_temp(jet_px, jet_py, jet_pz);
-    math::XYZVector jet_dir = jet_dir_temp.Unit();
-    TVector3 jet_dir3(jet_px, jet_py, jet_pz);
-
-    // Loop over AK8 jet constituents
-    const vector<PseudoJet> constituents = j.constituents();
-    for (auto &cand : constituents) {
-      // Match PseudoJet constituent to PF candidate
-      auto *reco_cand = dynamic_cast<const Run3ScoutingParticle*> (&pfcandsParticleNetH->at(cand.user_index()));
-      // The following is needed to compute btagEtaRel, btagPtRatio and btagPParRatio
-      float trk_px = reco_cand->trk_pt() * cos(reco_cand->trk_phi());
-      float trk_py = reco_cand->trk_pt() * sin(reco_cand->trk_phi());
-      float trk_pz = reco_cand->trk_pt() * sinh(reco_cand->trk_eta());
-      math::XYZVector track_mom(trk_px, trk_py, trk_pz);
-      TVector3 track_mom3(trk_px, trk_py, trk_pz);
-      double track_mag = sqrt(trk_px * trk_px + trk_py * trk_py + trk_pz * trk_pz);
-
-      float reco_cand_p = reco_cand->pt() * cosh(reco_cand->eta());
-      pfcand_pt_log_nopuppi.push_back(log(reco_cand->pt()));
-      pfcand_e_log_nopuppi.push_back(log(sqrt(reco_cand_p*reco_cand_p + reco_cand->m()*reco_cand->m())));
-      pfcand_etarel.push_back(etasign * (reco_cand->eta() - j.eta()));
-      pfcand_phirel.push_back(deltaPhi(reco_cand->phi(), j.phi()));
-      pfcand_abseta.push_back(abs(reco_cand->eta()));
-      if (isNeutralPdg(reco_cand->pdgId())) {
-         pfcand_charge.push_back(0);
-      } else {
-         pfcand_charge.push_back(abs(reco_cand->pdgId())/reco_cand->pdgId());
-      }
-      pfcand_isEl.push_back(abs(reco_cand->pdgId()) == 11);
-      pfcand_isMu.push_back(abs(reco_cand->pdgId()) == 13);
-      pfcand_isGamma.push_back(abs(reco_cand->pdgId()) == 22);
-      pfcand_isChargedHad.push_back(abs(reco_cand->pdgId()) == 211);
-      pfcand_isNeutralHad.push_back(abs(reco_cand->pdgId()) == 130);
-      pfcand_lostInnerHits.push_back(reco_cand->lostInnerHits());
-      pfcand_normchi2.push_back(reco_cand->normchi2());
-      pfcand_quality.push_back(reco_cand->quality());
-      pfcand_dz.push_back(reco_cand->dz());
-      pfcand_dzsig.push_back(reco_cand->dzsig());
-      pfcand_dxy.push_back(reco_cand->dxy());
-      pfcand_dxysig.push_back(reco_cand->dxysig());
-      pfcand_btagEtaRel.push_back(reco::btau::etaRel(jet_dir, track_mom));
-      pfcand_btagPtRatio.push_back(track_mom3.Perp(jet_dir3) / track_mag);
-      pfcand_btagPParRatio.push_back(jet_dir.Dot(track_mom) / track_mag);
-    }
-
-    fj_pt = j.pt();
-    fj_eta = j.eta();
-    fj_phi = j.phi();
-    fj_mass = j.m();
-
-    PseudoJet sd_ak8 = sd_groomer(j);
-    fj_msd = sd_ak8.m();
-    fj_n2b1 = N2(sd_ak8);
-
-    fj_no = ak8_jets.size();
-    fj_npfcands = constituents.size();
-
-    label_Top_bcq = (ak8_label.first == FatJetMatching::Top_bcq);
-    label_Top_bqq = (ak8_label.first == FatJetMatching::Top_bqq);
-    label_Top_bc = (ak8_label.first == FatJetMatching::Top_bc);
-    label_Top_bq = (ak8_label.first == FatJetMatching::Top_bq);
-    label_W_cq = (ak8_label.first == FatJetMatching::W_cq);
-    label_W_qq = (ak8_label.first == FatJetMatching::W_qq);
-    label_Z_bb = (ak8_label.first == FatJetMatching::Z_bb);
-    label_Z_cc = (ak8_label.first == FatJetMatching::Z_cc);
-    label_Z_qq = (ak8_label.first == FatJetMatching::Z_qq);
-    label_H_bb = (ak8_label.first == FatJetMatching::H_bb);
-    label_H_cc = (ak8_label.first == FatJetMatching::H_cc);
-    label_H_qqqq = (ak8_label.first == FatJetMatching::H_qqqq);
-    label_H_tautau = (ak8_label.first == FatJetMatching::H_tautau);
-    label_H_qq = (ak8_label.first == FatJetMatching::H_qq);
-    label_QCD_all = (ak8_label.first == FatJetMatching::QCD_all);
-    sample_isQCD = isQCD;
-
-    fj_gen_mass = (ak8_label.first < FatJetMatching::QCD_all && ak8_label.second) ? ak8_label.second->mass() : 0;
-
-    if (std::find(unmatchedJets.begin(), unmatchedJets.end(), ak8_jet_idx) != unmatchedJets.end()) {
-
-      if (debug) std::cout << "\nUnmatched!" << std::endl;
-      fj_genjet_sdmass = -99;
+      Jet_ptGen.push_back(-99.0);
 
     } else {
       
-      if (debug) std::cout << "\nMatched!" << std::endl;
-      fj_genjet_sdmass = resultMap[ak8_jet_idx].mass();
+      Jet_ptGen.push_back(resultMap[i].pt());
 
     }
-
-    event_no = iEvent.id().event();
-
-    ak8_jet_idx++;
-
-    tree->Fill();	
-    clearVars();
   }
+
+  tree->Fill();	
+  clearVars();
 }
 
 void ScoutingNanoAOD::clearVars(){
-  pfcand_pt_log_nopuppi.clear();
-  pfcand_e_log_nopuppi.clear();
-  pfcand_etarel.clear();
-  pfcand_phirel.clear();
-  pfcand_abseta.clear();
-  pfcand_charge.clear();
-  pfcand_isEl.clear();
-  pfcand_isMu.clear();
-  pfcand_isGamma.clear();
-  pfcand_isChargedHad.clear();
-  pfcand_isNeutralHad.clear();
-  pfcand_lostInnerHits.clear();
-  pfcand_normchi2.clear();
-  pfcand_quality.clear();
-  pfcand_dz.clear();
-  pfcand_dzsig.clear();
-  pfcand_dxy.clear();
-  pfcand_dxysig.clear();
-  pfcand_btagEtaRel.clear();
-  pfcand_btagPtRatio.clear();
-  pfcand_btagPParRatio.clear();
+  JetHLT_pt.clear();
+  JetHLT_mass.clear();
+  JetHLT_eta.clear();
+  JetHLT_ptGen.clear();
+  JetHLT_ptRaw.clear();
+  JetHLT_massRaw.clear();
+  Jet_pt.clear();
+  Jet_mass.clear();
+  Jet_eta.clear();
+  Jet_ptGen.clear();
+  Jet_ptRaw.clear();
+  Jet_massRaw.clear();
 }
 
 void ScoutingNanoAOD::beginJob() {
