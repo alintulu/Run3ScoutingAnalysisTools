@@ -103,6 +103,7 @@
 #include "fastjet/contrib/EnergyCorrelator.hh"
 #include "fastjet/JadePlugin.hh"
 #include "fastjet/contrib/SoftKiller.hh"
+#include "SimGeneral/HepPDTRecord/interface/ParticleDataTable.h"
 
 using namespace std;
 
@@ -137,10 +138,10 @@ private:
     const edm::EDGetTokenT<double>  	rhoToken;
     const edm::EDGetTokenT<double>  	pfMetToken;
     const edm::EDGetTokenT<double>  	pfMetPhiToken;
-  
 
     //const edm::EDGetTokenT<GenEventInfoProduct>             genEvtInfoToken;	
     bool doL1;       
+    const edm::ESGetToken<HepPDT::ParticleDataTable, edm::DefaultRecord> particleTableToken;
 	
     edm::InputTag                algInputTag_;       
     edm::InputTag                extInputTag_;       
@@ -167,7 +168,9 @@ private:
     vector<Float_t> Photon_sMaj_;
     vector<UInt_t> Photon_seedId_;
     vector<vector<Float_t> > Photon_energyMatrix_;
+    //vector<vector<UInt_t> > Photon_detIds_;
     vector<vector<Float_t> > Photon_timingMatrix_;
+    //vector<bool> Photon_rechitZeroSuppression_;
 
     //Electron
     const static int 	max_ele = 1000;
@@ -193,7 +196,9 @@ private:
     vector<Float_t> Electron_sMaj_;
     vector<UInt_t> Electron_seedId_;
     vector<vector<Float_t> > Electron_energyMatrix_;
+    //vector<vector<UInt_t> > Electron_detIds_;
     vector<vector<Float_t> > Electron_timingMatrix_;
+    //vector<bool> Electron_rechitZeroSuppression_;
 
     //Muon
     const static int 	max_mu = 1000;
@@ -283,15 +288,43 @@ private:
     vector<Float_t> Jet_mvaDiscriminator_;
     vector<vector<Int_t> > Jet_constituents_;
 
+    //PFFatJet
+    UInt_t n_fatjet;
+    vector<Float16_t> FatJet_area_;
+    vector<Float16_t> FatJet_eta_;
+    vector<Float16_t> FatJet_n2b1_;
+    vector<Float16_t> FatJet_n3b1_;
+    vector<Float16_t> FatJet_phi_;
+    vector<Float16_t> FatJet_pt_;
+    vector<Float16_t> FatJet_tau1_;
+    vector<Float16_t> FatJet_tau2_;
+    vector<Float16_t> FatJet_tau3_;
+    vector<Float16_t> FatJet_tau4_;
+    vector<Float16_t> FatJet_mass_;
+    vector<Float16_t> FatJet_msoftdrop_;
+    vector<Float16_t> FatJet_mtrim_;
+
     //PFCand
     const static int 	max_pfcand = 10000;
     UInt_t n_pfcand;
     vector<Float_t> PFCand_pt_;
     vector<Float_t> PFCand_eta_;
     vector<Float_t> PFCand_phi_;
-    vector<Float_t> PFCand_m_;
     vector<Int_t> PFCand_pdgId_;
     vector<Int_t> PFCand_vertex_;
+    vector<Float_t> PFCand_normchi2_;
+    vector<Float_t> PFCand_dz_;
+    vector<Float_t> PFCand_dxy_;
+    vector<Float_t> PFCand_dzsig_;
+    vector<Float_t> PFCand_dxysig_;
+    vector<UInt_t> PFCand_lostInnerHits_;
+    vector<UInt_t> PFCand_quality_;
+    vector<Float_t> PFCand_trk_pt_;
+    vector<Float_t> PFCand_trk_eta_;
+    vector<Float_t> PFCand_trk_phi_;
+    //vector<Float_t> PFCand_relative_trk_vars_;
+    vector<Float_t> PFCand_m_;
+    vector<Float_t> PFCand_charge_;
 
     //Track
     const static int max_track = 10000;
@@ -385,7 +418,8 @@ ScoutingNanoAOD::ScoutingNanoAOD(const edm::ParameterSet& iConfig):
     rhoToken             (consumes<double>(iConfig.getParameter<edm::InputTag>("rho"))),
     pfMetToken             (consumes<double>(iConfig.getParameter<edm::InputTag>("pfMet"))),
     pfMetPhiToken             (consumes<double>(iConfig.getParameter<edm::InputTag>("pfMetPhi"))),
-    doL1                     (iConfig.existsAs<bool>("doL1")               ?    iConfig.getParameter<bool>  ("doL1")            : false)
+    doL1                     (iConfig.existsAs<bool>("doL1")               ?    iConfig.getParameter<bool>  ("doL1")            : false),
+    particleTableToken       (esConsumes<HepPDT::ParticleDataTable, edm::DefaultRecord>())
 {
     usesResource("TFileService");
     if (doL1) {
@@ -439,8 +473,10 @@ ScoutingNanoAOD::ScoutingNanoAOD(const edm::ParameterSet& iConfig):
     tree->Branch("Electron_sMin", &Electron_sMin_ );
     tree->Branch("Electron_sMaj", &Electron_sMaj_ );
     tree->Branch("Electron_seedId", &Electron_seedId_ );
+    //tree->Branch("Electron_detIds", &Electron_detIds_ );
     tree->Branch("Electron_energyMatrix", &Electron_energyMatrix_ );
     tree->Branch("Electron_timingMatrix", &Electron_timingMatrix_ );
+    //tree->Branch("Electron_rechitZeroSuppression", &Electron_rechitZeroSuppression_ );
 
     //Muons
     tree->Branch("n_mu"            	   ,&n_mu 			, "n_mu/i"		);
@@ -515,8 +551,10 @@ ScoutingNanoAOD::ScoutingNanoAOD(const edm::ParameterSet& iConfig):
     tree->Branch("Photon_sMin", &Photon_sMin_ );
     tree->Branch("Photon_sMaj", &Photon_sMaj_ );
     tree->Branch("Photon_seedId", &Photon_seedId_ );
+    //tree->Branch("Photon_detIds", &Photon_detIds_ );
     tree->Branch("Photon_energyMatrix", &Photon_energyMatrix_ );
     tree->Branch("Photon_timingMatrix", &Photon_timingMatrix_ );
+    //tree->Branch("Photon_rechitZeroSuppression", &Photon_rechitZeroSuppression_ );
 
     //PFJets
     tree->Branch("n_jet"            	   	,&n_jet 			, "n_jet/i"		);
@@ -543,15 +581,43 @@ ScoutingNanoAOD::ScoutingNanoAOD(const edm::ParameterSet& iConfig):
     tree->Branch("Jet_csv", &Jet_csv_ );
     tree->Branch("Jet_mvaDiscriminator", &Jet_mvaDiscriminator_ );
     tree->Branch("Jet_constituents", &Jet_constituents_ );
-      
+
+    //PFFatJet
+    tree->Branch("n_fatjet"            	   	,&n_fatjet 			, "n_fatjet/i"		);
+    tree->Branch("FatJet_area", &FatJet_area_ );
+    tree->Branch("FatJet_eta", &FatJet_eta_ );
+    tree->Branch("FatJet_n2b1", &FatJet_n2b1_ );
+    tree->Branch("FatJet_n3b1", &FatJet_n3b1_ );
+    tree->Branch("FatJet_phi", &FatJet_phi_ );
+    tree->Branch("FatJet_pt", &FatJet_pt_ );
+    tree->Branch("FatJet_tau1", &FatJet_tau1_ );
+    tree->Branch("FatJet_tau2", &FatJet_tau2_ );
+    tree->Branch("FatJet_tau3", &FatJet_tau3_ );
+    tree->Branch("FatJet_tau4", &FatJet_tau4_ );
+    tree->Branch("FatJet_mass", &FatJet_mass_ );
+    tree->Branch("FatJet_msoftdrop", &FatJet_msoftdrop_ );
+    tree->Branch("FatJet_mtrim", &FatJet_mtrim_ );
+ 
     //PFCands
     tree->Branch("n_pfcand"            	   ,&n_pfcand 		,"n_pfcand/i"		);	
     tree->Branch("PFCand_pt", &PFCand_pt_ );
     tree->Branch("PFCand_eta", &PFCand_eta_ );
     tree->Branch("PFCand_phi", &PFCand_phi_ );
-    tree->Branch("PFCand_m", &PFCand_m_ );
     tree->Branch("PFCand_pdgId", &PFCand_pdgId_ );
     tree->Branch("PFCand_vertex", &PFCand_vertex_ );
+    tree->Branch("PFCand_normchi2", &PFCand_normchi2_ );
+    tree->Branch("PFCand_dz", &PFCand_dz_ );
+    tree->Branch("PFCand_dxy", &PFCand_dxy_ );
+    tree->Branch("PFCand_dzsig", &PFCand_dzsig_ );
+    tree->Branch("PFCand_dxysig", &PFCand_dxysig_ );
+    tree->Branch("PFCand_lostInnerHits", &PFCand_lostInnerHits_ );
+    tree->Branch("PFCand_quality", &PFCand_quality_ );
+    tree->Branch("PFCand_trk_pt", &PFCand_trk_pt_ );
+    tree->Branch("PFCand_trk_eta", &PFCand_trk_eta_ );
+    tree->Branch("PFCand_trk_phi", &PFCand_trk_phi_ );
+    //tree->Branch("PFCand_relative_trk_vars", &PFCand_relative_trk_vars_ );
+    tree->Branch("PFCand_m", &PFCand_m_ );
+    tree->Branch("PFCand_charge", &PFCand_charge_ );
 
 
     //Tracks
@@ -632,6 +698,8 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
     using namespace edm;
     using namespace std;
     using namespace reco;
+    using namespace fastjet;
+    using namespace fastjet::contrib;
     
     Handle<vector<Run3ScoutingElectron> > electronsH;
     iEvent.getByToken(electronsToken, electronsH);
@@ -672,15 +740,18 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
     run = iEvent.eventAuxiliary().run();
     lumSec = iEvent.eventAuxiliary().luminosityBlock();
 
+    auto pdt = iSetup.getHandle(particleTableToken);
+    const HepPDT::ParticleDataTable* pdTable = pdt.product();
+
     if (doL1) {
         l1GtUtils_->retrieveL1(iEvent,iSetup,algToken_);
-        for( int r = 0; r<280; r++){
-            string name ("empty");
-            bool algoName_ = false;
-            algoName_ = l1GtUtils_->getAlgNameFromBit(r,name);
-            cout << "getAlgNameFromBit = " << algoName_  << endl;
-            cout << "L1 bit number = " << r << " ; L1 bit name = " << name << endl;
-        }
+        //for( int r = 0; r<280; r++){
+        //    string name ("empty");
+        //    bool algoName_ = false;
+        //    algoName_ = l1GtUtils_->getAlgNameFromBit(r,name);
+        //    cout << "getAlgNameFromBit = " << algoName_  << endl;
+        //    cout << "L1 bit number = " << r << " ; L1 bit name = " << name << endl;
+        //}
         for( unsigned int iseed = 0; iseed < l1Seeds_.size(); iseed++ ) {
             bool l1htbit = 0;	
 			
@@ -714,8 +785,10 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
         Electron_sMin_.push_back(iter->sMin());
         Electron_sMaj_.push_back(iter->sMaj());
         Electron_seedId_.push_back(iter->seedId());
+        //Electron_detIds_.push_back(vector<UInt_t>(iter->detIds()));
         Electron_energyMatrix_.push_back(vector<Float_t>(iter->energyMatrix()));
         Electron_timingMatrix_.push_back(vector<Float_t>(iter->timingMatrix()));
+        //Electron_rechitZeroSuppression_.push_back(iter->rechitZeroSuppression());
         n_ele++;
     }
 
@@ -795,8 +868,10 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
         Photon_sMin_.push_back(iter->sMin());
         Photon_sMaj_.push_back(iter->sMaj());
         Photon_seedId_.push_back(iter->seedId());
+        //Photon_detIds_.push_back(vector<UInt_t>(iter->detIds()));
         Photon_energyMatrix_.push_back(vector<Float_t>(iter->energyMatrix()));
         Photon_timingMatrix_.push_back(vector<Float_t>(iter->timingMatrix()));    
+        //Photon_rechitZeroSuppression_.push_back(iter->rechitZeroSuppression());
         n_pho++;
     }
 
@@ -828,16 +903,89 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
         n_jet++;
     }
 
+    vector<PseudoJet> fj_part;
     n_pfcand = 0;
     for (auto iter = pfcandsH->begin(); iter != pfcandsH->end(); ++iter) {
         PFCand_pt_.push_back(iter->pt());
         PFCand_eta_.push_back(iter->eta());
         PFCand_phi_.push_back(iter->phi());
-        PFCand_m_.push_back(iter->m());
         PFCand_pdgId_.push_back(iter->pdgId());
-        PFCand_vertex_.push_back(iter->vertex());        
+        PFCand_vertex_.push_back(iter->vertex());
+        PFCand_normchi2_.push_back(iter->normchi2());
+        PFCand_dz_.push_back(iter->dz());
+        PFCand_dxy_.push_back(iter->dxy());
+        PFCand_dzsig_.push_back(iter->dzsig());
+        PFCand_dxysig_.push_back(iter->dxysig());
+        PFCand_lostInnerHits_.push_back(iter->lostInnerHits());
+        PFCand_quality_.push_back(iter->quality());
+        PFCand_trk_pt_.push_back(iter->trk_pt());
+        PFCand_trk_eta_.push_back(iter->trk_eta());
+        PFCand_trk_phi_.push_back(iter->trk_phi());
+        //PFCand_relative_trk_vars_.push_back(iter->relative_trk_vars());
+
+        auto pfm = pdTable->particle(HepPDT::ParticleID(iter->pdgId())) != nullptr
+                        ? pdTable->particle(HepPDT::ParticleID(iter->pdgId()))->mass()
+                        : -99.f;
+        PFCand_m_.push_back(pfm);
+
+        auto pfc = pdTable->particle(HepPDT::ParticleID(iter->pdgId())) != nullptr
+                        ? pdTable->particle(HepPDT::ParticleID(iter->pdgId()))->charge()
+                        : -99.f;
+        PFCand_charge_.push_back(pfc);
+
+        if (pfm > -1) {
+             math::PtEtaPhiMLorentzVector p4(iter->pt(), iter->eta(), iter->phi(), pfm);
+             fj_part.emplace_back(p4.px(), p4.py(), p4.pz(), p4.energy());
+             fj_part.back().set_user_index(iter->pdgId());
+        }
+
         n_pfcand++;
-    } 
+    }
+
+    JetDefinition ak8_def = JetDefinition(antikt_algorithm, 0.8);
+    double sd_z_cut = 0.10;
+    double sd_beta = 0;
+    SoftDrop sd_groomer = SoftDrop(sd_z_cut, sd_beta, 1.0);
+    Filter trimmer = Filter(JetDefinition(kt_algorithm, 0.2), SelectorPtFractionMin(0.03));
+
+    double beta = 1.0;
+    Nsubjettiness nSub1 = Nsubjettiness(1, OnePass_WTA_KT_Axes(), UnnormalizedMeasure(beta));
+    Nsubjettiness nSub2 = Nsubjettiness(2, OnePass_WTA_KT_Axes(), UnnormalizedMeasure(beta));
+    Nsubjettiness nSub3 = Nsubjettiness(3, OnePass_WTA_KT_Axes(), UnnormalizedMeasure(beta));
+    Nsubjettiness nSub4 = Nsubjettiness(4, OnePass_WTA_KT_Axes(), UnnormalizedMeasure(beta));
+    Nsubjettiness nSub5 = Nsubjettiness(5, OnePass_WTA_KT_Axes(), UnnormalizedMeasure(beta));
+
+    EnergyCorrelatorN2 N2=EnergyCorrelatorN2(1.0);
+    EnergyCorrelatorN3 N3=EnergyCorrelatorN3(1.0);
+
+    fastjet::GhostedAreaSpec area_spec(5.0,1,0.01);
+    fastjet::AreaDefinition area_def(fastjet::active_area, area_spec);
+
+    ClusterSequenceArea ak8_cs(fj_part, ak8_def, area_def);
+    vector<PseudoJet> ak8_jets = sorted_by_pt(ak8_cs.inclusive_jets(100.0));
+
+    n_fatjet = 0;
+    for(auto &j: ak8_jets) {
+        FatJet_area_.push_back(j.area());
+        FatJet_eta_.push_back(j.pseudorapidity());
+        FatJet_mass_.push_back(j.m());
+        FatJet_phi_.push_back(j.phi_std());
+        FatJet_pt_.push_back(j.pt());
+
+        PseudoJet sd_ak8 = sd_groomer(j);
+        FatJet_msoftdrop_.push_back(sd_ak8.m());
+        
+        PseudoJet trimmed_ak8 = trimmer(j);
+        FatJet_mtrim_.push_back(trimmed_ak8.m());
+        
+        FatJet_n2b1_.push_back(N2(sd_ak8));
+        FatJet_n3b1_.push_back(N3(sd_ak8));
+        FatJet_tau1_.push_back(nSub1.result(j));
+        FatJet_tau2_.push_back(nSub2.result(j));
+        FatJet_tau3_.push_back(nSub3.result(j));
+        FatJet_tau4_.push_back(nSub4.result(j));
+        n_fatjet++;
+   }
 
     n_track = 0;
     for (auto iter = tracksH->begin(); iter != tracksH->end(); ++iter) {
@@ -929,8 +1077,10 @@ void ScoutingNanoAOD::clearVars(){
     Photon_sMin_.clear();
     Photon_sMaj_.clear();
     Photon_seedId_.clear();
+    //Photon_detIds_.clear();
     Photon_energyMatrix_.clear();
     Photon_timingMatrix_.clear();
+    //Photon_rechitZeroSuppression_.clear();
     Electron_pt_.clear();
     Electron_eta_.clear();
     Electron_phi_.clear();
@@ -951,8 +1101,10 @@ void ScoutingNanoAOD::clearVars(){
     Electron_sMin_.clear();
     Electron_sMaj_.clear();
     Electron_seedId_.clear();
+    //Electron_detIds_.clear();
     Electron_energyMatrix_.clear();
     Electron_timingMatrix_.clear();
+    //Electron_rechitZeroSuppression_.clear();
     Muon_pt_.clear();
     Muon_eta_.clear();
     Muon_phi_.clear();
@@ -1031,12 +1183,37 @@ void ScoutingNanoAOD::clearVars(){
     Jet_csv_.clear();
     Jet_mvaDiscriminator_.clear();
     Jet_constituents_.clear();
+    FatJet_area_.clear();
+    FatJet_eta_.clear();
+    FatJet_n2b1_.clear();
+    FatJet_n3b1_.clear();
+    FatJet_phi_.clear();
+    FatJet_pt_.clear();
+    FatJet_tau1_.clear();
+    FatJet_tau2_.clear();
+    FatJet_tau3_.clear();
+    FatJet_tau4_.clear();
+    FatJet_mass_.clear();
+    FatJet_msoftdrop_.clear();
+    FatJet_mtrim_.clear();
     PFCand_pt_.clear();
     PFCand_eta_.clear();
     PFCand_phi_.clear();
-    PFCand_m_.clear();
     PFCand_pdgId_.clear();
     PFCand_vertex_.clear();
+    PFCand_normchi2_.clear();
+    PFCand_dz_.clear();
+    PFCand_dxy_.clear();
+    PFCand_dzsig_.clear();
+    PFCand_dxysig_.clear();
+    PFCand_lostInnerHits_.clear();
+    PFCand_quality_.clear();
+    PFCand_trk_pt_.clear();
+    PFCand_trk_eta_.clear();
+    PFCand_trk_phi_.clear();
+    //PFCand_relative_trk_vars_.clear();
+    PFCand_m_.clear();
+    PFCand_charge_.clear();
     Track_pt_.clear();
     Track_eta_.clear();
     Track_phi_.clear();
@@ -1090,8 +1267,7 @@ void ScoutingNanoAOD::clearVars(){
     DisplacedVtx_tracksSize_.clear();
     DisplacedVtx_chi2_.clear();
     DisplacedVtx_ndof_.clear();
-    DisplacedVtx_isValidVtx_.clear();
-    
+    DisplacedVtx_isValidVtx_.clear(); 
 }
 
 void ScoutingNanoAOD::beginJob() {
