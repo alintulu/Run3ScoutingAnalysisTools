@@ -7,11 +7,11 @@ config.General.transferOutputs = True
 
 config.JobType.pluginName = 'Analysis'
 config.JobType.psetName = '../test/ScoutingNanoAOD_cfg.py'
-config.JobType.pyCfgParams = ['outputFile=scouting.root', 'isMC=False', 'GlobalTagData=123X_dataRun3_HLT_v14']
+config.JobType.pyCfgParams = ['outputFile=scouting.root', 'isMC=False', 'GlobalTagData=124X_dataRun3_HLT_v4']
 config.Data.inputDataset = '/ScoutingPFRun3/Run2022B-v1/RAW'
 config.Data.inputDBS = 'global'
 config.Data.splitting = 'Automatic'
-config.Data.LumiMask = 'Cert_Collisions2022_355100_357101_Golden.json'
+config.Data.LumiMask = 'Cert_Collisions2022_eraC_355862_357482_Golden.json'
 config.Data.publication = False
 config.Data.outputDatasetTag = '2022B'
 #config.Data.ignoreLocality = True

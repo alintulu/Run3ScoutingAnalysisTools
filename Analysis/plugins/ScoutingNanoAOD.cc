@@ -168,9 +168,9 @@ private:
     vector<Float_t> Photon_sMaj_;
     vector<UInt_t> Photon_seedId_;
     vector<vector<Float_t> > Photon_energyMatrix_;
-    //vector<vector<UInt_t> > Photon_detIds_;
+    vector<vector<UInt_t> > Photon_detIds_;
     vector<vector<Float_t> > Photon_timingMatrix_;
-    //vector<bool> Photon_rechitZeroSuppression_;
+    vector<bool> Photon_rechitZeroSuppression_;
 
     //Electron
     const static int 	max_ele = 1000;
@@ -444,10 +444,10 @@ ScoutingNanoAOD::ScoutingNanoAOD(const edm::ParameterSet& iConfig):
     tree->Branch("Electron_sMin", &Electron_sMin_ );
     tree->Branch("Electron_sMaj", &Electron_sMaj_ );
     tree->Branch("Electron_seedId", &Electron_seedId_ );
-    //tree->Branch("Electron_detIds", &Electron_detIds_ );
+    tree->Branch("Electron_detIds", &Electron_detIds_ );
     tree->Branch("Electron_energyMatrix", &Electron_energyMatrix_ );
     tree->Branch("Electron_timingMatrix", &Electron_timingMatrix_ );
-    //tree->Branch("Electron_rechitZeroSuppression", &Electron_rechitZeroSuppression_ );
+    tree->Branch("Electron_rechitZeroSuppression", &Electron_rechitZeroSuppression_ );
 
     //Muons
     tree->Branch("n_mu"            	   ,&n_mu 			, "n_mu/i"		);
@@ -522,10 +522,10 @@ ScoutingNanoAOD::ScoutingNanoAOD(const edm::ParameterSet& iConfig):
     tree->Branch("Photon_sMin", &Photon_sMin_ );
     tree->Branch("Photon_sMaj", &Photon_sMaj_ );
     tree->Branch("Photon_seedId", &Photon_seedId_ );
-    //tree->Branch("Photon_detIds", &Photon_detIds_ );
+    tree->Branch("Photon_detIds", &Photon_detIds_ );
     tree->Branch("Photon_energyMatrix", &Photon_energyMatrix_ );
     tree->Branch("Photon_timingMatrix", &Photon_timingMatrix_ );
-    //tree->Branch("Photon_rechitZeroSuppression", &Photon_rechitZeroSuppression_ );
+    tree->Branch("Photon_rechitZeroSuppression", &Photon_rechitZeroSuppression_ );
 
     //PFJets
     tree->Branch("n_jet"            	   	,&n_jet 			, "n_jet/i"		);
@@ -726,10 +726,10 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
         Electron_sMin_.push_back(iter->sMin());
         Electron_sMaj_.push_back(iter->sMaj());
         Electron_seedId_.push_back(iter->seedId());
-        //Electron_detIds_.push_back(vector<UInt_t>(iter->detIds()));
+        Electron_detIds_.push_back(vector<UInt_t>(iter->detIds()));
         Electron_energyMatrix_.push_back(vector<Float_t>(iter->energyMatrix()));
         Electron_timingMatrix_.push_back(vector<Float_t>(iter->timingMatrix()));
-        //Electron_rechitZeroSuppression_.push_back(iter->rechitZeroSuppression());
+        Electron_rechitZeroSuppression_.push_back(iter->rechitZeroSuppression());
         n_ele++;
     }
 
@@ -809,10 +809,10 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
         Photon_sMin_.push_back(iter->sMin());
         Photon_sMaj_.push_back(iter->sMaj());
         Photon_seedId_.push_back(iter->seedId());
-        //Photon_detIds_.push_back(vector<UInt_t>(iter->detIds()));
+        Photon_detIds_.push_back(vector<UInt_t>(iter->detIds()));
         Photon_energyMatrix_.push_back(vector<Float_t>(iter->energyMatrix()));
         Photon_timingMatrix_.push_back(vector<Float_t>(iter->timingMatrix()));    
-        //Photon_rechitZeroSuppression_.push_back(iter->rechitZeroSuppression());
+        Photon_rechitZeroSuppression_.push_back(iter->rechitZeroSuppression());
         n_pho++;
     }
 
@@ -944,10 +944,10 @@ void ScoutingNanoAOD::clearVars(){
     Photon_sMin_.clear();
     Photon_sMaj_.clear();
     Photon_seedId_.clear();
-    //Photon_detIds_.clear();
+    Photon_detIds_.clear();
     Photon_energyMatrix_.clear();
     Photon_timingMatrix_.clear();
-    //Photon_rechitZeroSuppression_.clear();
+    Photon_rechitZeroSuppression_.clear();
     Electron_pt_.clear();
     Electron_eta_.clear();
     Electron_phi_.clear();
@@ -968,10 +968,10 @@ void ScoutingNanoAOD::clearVars(){
     Electron_sMin_.clear();
     Electron_sMaj_.clear();
     Electron_seedId_.clear();
-    //Electron_detIds_.clear();
+    Electron_detIds_.clear();
     Electron_energyMatrix_.clear();
     Electron_timingMatrix_.clear();
-    //Electron_rechitZeroSuppression_.clear();
+    Electron_rechitZeroSuppression_.clear();
     Muon_pt_.clear();
     Muon_eta_.clear();
     Muon_phi_.clear();
