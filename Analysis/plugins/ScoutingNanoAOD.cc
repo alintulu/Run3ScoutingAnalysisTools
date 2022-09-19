@@ -268,7 +268,7 @@ private:
     vector<Float_t> Jet_eta_;
     vector<Float_t> Jet_phi_;
     vector<Float_t> Jet_m_;
-    vector<Float_t> Jet_jetArea_;
+    vector<Float_t> Jet_area_;
     vector<Float_t> Jet_chargedHadronEnergy_;
     vector<Float_t> Jet_neutralHadronEnergy_;
     vector<Float_t> Jet_photonEnergy_;
@@ -288,22 +288,6 @@ private:
     vector<Float_t> Jet_mvaDiscriminator_;
     vector<vector<Int_t> > Jet_constituents_;
 
-    //PFFatJet
-    UInt_t n_fatjet;
-    vector<Float16_t> FatJet_area_;
-    vector<Float16_t> FatJet_eta_;
-    vector<Float16_t> FatJet_n2b1_;
-    vector<Float16_t> FatJet_n3b1_;
-    vector<Float16_t> FatJet_phi_;
-    vector<Float16_t> FatJet_pt_;
-    vector<Float16_t> FatJet_tau1_;
-    vector<Float16_t> FatJet_tau2_;
-    vector<Float16_t> FatJet_tau3_;
-    vector<Float16_t> FatJet_tau4_;
-    vector<Float16_t> FatJet_mass_;
-    vector<Float16_t> FatJet_msoftdrop_;
-    vector<Float16_t> FatJet_mtrim_;
-
     //PFCand
     const static int 	max_pfcand = 10000;
     UInt_t n_pfcand;
@@ -312,19 +296,6 @@ private:
     vector<Float_t> PFCand_phi_;
     vector<Int_t> PFCand_pdgId_;
     vector<Int_t> PFCand_vertex_;
-    vector<Float_t> PFCand_normchi2_;
-    vector<Float_t> PFCand_dz_;
-    vector<Float_t> PFCand_dxy_;
-    vector<Float_t> PFCand_dzsig_;
-    vector<Float_t> PFCand_dxysig_;
-    vector<UInt_t> PFCand_lostInnerHits_;
-    vector<UInt_t> PFCand_quality_;
-    vector<Float_t> PFCand_trk_pt_;
-    vector<Float_t> PFCand_trk_eta_;
-    vector<Float_t> PFCand_trk_phi_;
-    //vector<Float_t> PFCand_relative_trk_vars_;
-    vector<Float_t> PFCand_m_;
-    vector<Float_t> PFCand_charge_;
 
     //Track
     const static int max_track = 10000;
@@ -562,7 +533,7 @@ ScoutingNanoAOD::ScoutingNanoAOD(const edm::ParameterSet& iConfig):
     tree->Branch("Jet_eta", &Jet_eta_ );
     tree->Branch("Jet_phi", &Jet_phi_ );
     tree->Branch("Jet_m", &Jet_m_ );
-    tree->Branch("Jet_jetArea", &Jet_jetArea_ );
+    tree->Branch("Jet_area", &Jet_area_ );
     tree->Branch("Jet_chargedHadronEnergy", &Jet_chargedHadronEnergy_ );
     tree->Branch("Jet_neutralHadronEnergy", &Jet_neutralHadronEnergy_ );
     tree->Branch("Jet_photonEnergy", &Jet_photonEnergy_ );
@@ -582,22 +553,6 @@ ScoutingNanoAOD::ScoutingNanoAOD(const edm::ParameterSet& iConfig):
     tree->Branch("Jet_mvaDiscriminator", &Jet_mvaDiscriminator_ );
     tree->Branch("Jet_constituents", &Jet_constituents_ );
 
-    //PFFatJet
-    tree->Branch("n_fatjet"            	   	,&n_fatjet 			, "n_fatjet/i"		);
-    tree->Branch("FatJet_area", &FatJet_area_ );
-    tree->Branch("FatJet_eta", &FatJet_eta_ );
-    tree->Branch("FatJet_n2b1", &FatJet_n2b1_ );
-    tree->Branch("FatJet_n3b1", &FatJet_n3b1_ );
-    tree->Branch("FatJet_phi", &FatJet_phi_ );
-    tree->Branch("FatJet_pt", &FatJet_pt_ );
-    tree->Branch("FatJet_tau1", &FatJet_tau1_ );
-    tree->Branch("FatJet_tau2", &FatJet_tau2_ );
-    tree->Branch("FatJet_tau3", &FatJet_tau3_ );
-    tree->Branch("FatJet_tau4", &FatJet_tau4_ );
-    tree->Branch("FatJet_mass", &FatJet_mass_ );
-    tree->Branch("FatJet_msoftdrop", &FatJet_msoftdrop_ );
-    tree->Branch("FatJet_mtrim", &FatJet_mtrim_ );
- 
     //PFCands
     tree->Branch("n_pfcand"            	   ,&n_pfcand 		,"n_pfcand/i"		);	
     tree->Branch("PFCand_pt", &PFCand_pt_ );
@@ -605,57 +560,43 @@ ScoutingNanoAOD::ScoutingNanoAOD(const edm::ParameterSet& iConfig):
     tree->Branch("PFCand_phi", &PFCand_phi_ );
     tree->Branch("PFCand_pdgId", &PFCand_pdgId_ );
     tree->Branch("PFCand_vertex", &PFCand_vertex_ );
-    tree->Branch("PFCand_normchi2", &PFCand_normchi2_ );
-    tree->Branch("PFCand_dz", &PFCand_dz_ );
-    tree->Branch("PFCand_dxy", &PFCand_dxy_ );
-    tree->Branch("PFCand_dzsig", &PFCand_dzsig_ );
-    tree->Branch("PFCand_dxysig", &PFCand_dxysig_ );
-    tree->Branch("PFCand_lostInnerHits", &PFCand_lostInnerHits_ );
-    tree->Branch("PFCand_quality", &PFCand_quality_ );
-    tree->Branch("PFCand_trk_pt", &PFCand_trk_pt_ );
-    tree->Branch("PFCand_trk_eta", &PFCand_trk_eta_ );
-    tree->Branch("PFCand_trk_phi", &PFCand_trk_phi_ );
-    //tree->Branch("PFCand_relative_trk_vars", &PFCand_relative_trk_vars_ );
-    tree->Branch("PFCand_m", &PFCand_m_ );
-    tree->Branch("PFCand_charge", &PFCand_charge_ );
-
 
     //Tracks
-    tree->Branch("n_track"            	   	,&n_track 			, "n_track/i"		);
-    tree->Branch("Track_pt", &Track_pt_ );
-    tree->Branch("Track_eta", &Track_eta_ );
-    tree->Branch("Track_phi", &Track_phi_ );
-    tree->Branch("Track_chi2", &Track_chi2_ );
-    tree->Branch("Track_ndof", &Track_ndof_ );
-    tree->Branch("Track_charge", &Track_charge_ );
-    tree->Branch("Track_dxy", &Track_dxy_ );
-    tree->Branch("Track_dz", &Track_dz_ );
-    tree->Branch("Track_nValidPixelHits", &Track_nValidPixelHits_ );
-    tree->Branch("Track_nTrackerLayersWithMeasurement", &Track_nTrackerLayersWithMeasurement_ );
-    tree->Branch("Track_nValidStripHits", &Track_nValidStripHits_ );
-    tree->Branch("Track_qoverp", &Track_qoverp_ );
-    tree->Branch("Track_lambda", &Track_lambda_ );
-    tree->Branch("Track_dxy_Error", &Track_dxy_Error_ );
-    tree->Branch("Track_dz_Error", &Track_dz_Error_ );
-    tree->Branch("Track_qoverp_Error", &Track_qoverp_Error_ );
-    tree->Branch("Track_lambda_Error", &Track_lambda_Error_ );
-    tree->Branch("Track_phi_Error", &Track_phi_Error_ );
-    tree->Branch("Track_dsz", &Track_dsz_ );
-    tree->Branch("Track_dsz_Error", &Track_dsz_Error_ );
-    tree->Branch("Track_qoverp_lambda_cov", &Track_qoverp_lambda_cov_ );
-    tree->Branch("Track_qoverp_phi_cov", &Track_qoverp_phi_cov_ );
-    tree->Branch("Track_qoverp_dxy_cov", &Track_qoverp_dxy_cov_ );
-    tree->Branch("Track_qoverp_dsz_cov", &Track_qoverp_dsz_cov_ );
-    tree->Branch("Track_lambda_phi_cov", &Track_lambda_phi_cov_ );
-    tree->Branch("Track_lambda_dxy_cov", &Track_lambda_dxy_cov_ );
-    tree->Branch("Track_lambda_dsz_cov", &Track_lambda_dsz_cov_ );
-    tree->Branch("Track_phi_dxy_cov", &Track_phi_dxy_cov_ );
-    tree->Branch("Track_phi_dsz_cov", &Track_phi_dsz_cov_ );
-    tree->Branch("Track_dxy_dsz_cov", &Track_dxy_dsz_cov_ );
-    tree->Branch("Track_vtxInd", &Track_vtxInd_ );
-    tree->Branch("Track_vx", &Track_vx_ );
-    tree->Branch("Track_vy", &Track_vy_ );
-    tree->Branch("Track_vz", &Track_vz_ );
+    //tree->Branch("n_track"            	   	,&n_track 			, "n_track/i"		);
+    //tree->Branch("Track_pt", &Track_pt_ );
+    //tree->Branch("Track_eta", &Track_eta_ );
+    //tree->Branch("Track_phi", &Track_phi_ );
+    //tree->Branch("Track_chi2", &Track_chi2_ );
+    //tree->Branch("Track_ndof", &Track_ndof_ );
+    //tree->Branch("Track_charge", &Track_charge_ );
+    //tree->Branch("Track_dxy", &Track_dxy_ );
+    //tree->Branch("Track_dz", &Track_dz_ );
+    //tree->Branch("Track_nValidPixelHits", &Track_nValidPixelHits_ );
+    //tree->Branch("Track_nTrackerLayersWithMeasurement", &Track_nTrackerLayersWithMeasurement_ );
+    //tree->Branch("Track_nValidStripHits", &Track_nValidStripHits_ );
+    //tree->Branch("Track_qoverp", &Track_qoverp_ );
+    //tree->Branch("Track_lambda", &Track_lambda_ );
+    //tree->Branch("Track_dxy_Error", &Track_dxy_Error_ );
+    //tree->Branch("Track_dz_Error", &Track_dz_Error_ );
+    //tree->Branch("Track_qoverp_Error", &Track_qoverp_Error_ );
+    //tree->Branch("Track_lambda_Error", &Track_lambda_Error_ );
+    //tree->Branch("Track_phi_Error", &Track_phi_Error_ );
+    //tree->Branch("Track_dsz", &Track_dsz_ );
+    //tree->Branch("Track_dsz_Error", &Track_dsz_Error_ );
+    //tree->Branch("Track_qoverp_lambda_cov", &Track_qoverp_lambda_cov_ );
+    //tree->Branch("Track_qoverp_phi_cov", &Track_qoverp_phi_cov_ );
+    //tree->Branch("Track_qoverp_dxy_cov", &Track_qoverp_dxy_cov_ );
+    //tree->Branch("Track_qoverp_dsz_cov", &Track_qoverp_dsz_cov_ );
+    //tree->Branch("Track_lambda_phi_cov", &Track_lambda_phi_cov_ );
+    //tree->Branch("Track_lambda_dxy_cov", &Track_lambda_dxy_cov_ );
+    //tree->Branch("Track_lambda_dsz_cov", &Track_lambda_dsz_cov_ );
+    //tree->Branch("Track_phi_dxy_cov", &Track_phi_dxy_cov_ );
+    //tree->Branch("Track_phi_dsz_cov", &Track_phi_dsz_cov_ );
+    //tree->Branch("Track_dxy_dsz_cov", &Track_dxy_dsz_cov_ );
+    //tree->Branch("Track_vtxInd", &Track_vtxInd_ );
+    //tree->Branch("Track_vx", &Track_vx_ );
+    //tree->Branch("Track_vy", &Track_vy_ );
+    //tree->Branch("Track_vz", &Track_vz_ );
 
     //Primary Vertex
     tree->Branch("PrimaryVtx_x", &PrimaryVtx_x_ );
@@ -682,7 +623,7 @@ ScoutingNanoAOD::ScoutingNanoAOD(const edm::ParameterSet& iConfig):
     tree->Branch("DisplacedVtx_isValidVtx", &DisplacedVtx_isValidVtx_ );
 
     //PF Met
-    tree->Branch("PFMet_Et", &pfMet );
+    tree->Branch("PFMet_Pt", &pfMet );
     tree->Branch("PFMet_Phi", &pfMetPhi );
 
     //
@@ -881,7 +822,7 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
         Jet_eta_.push_back(iter->eta());
         Jet_phi_.push_back(iter->phi());
         Jet_m_.push_back(iter->m());
-        Jet_jetArea_.push_back(iter->jetArea());
+        Jet_area_.push_back(iter->jetArea());
         Jet_chargedHadronEnergy_.push_back(iter->chargedHadronEnergy());
         Jet_neutralHadronEnergy_.push_back(iter->neutralHadronEnergy());
         Jet_photonEnergy_.push_back(iter->photonEnergy());
@@ -903,7 +844,6 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
         n_jet++;
     }
 
-    vector<PseudoJet> fj_part;
     n_pfcand = 0;
     for (auto iter = pfcandsH->begin(); iter != pfcandsH->end(); ++iter) {
         PFCand_pt_.push_back(iter->pt());
@@ -911,120 +851,47 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
         PFCand_phi_.push_back(iter->phi());
         PFCand_pdgId_.push_back(iter->pdgId());
         PFCand_vertex_.push_back(iter->vertex());
-        PFCand_normchi2_.push_back(iter->normchi2());
-        PFCand_dz_.push_back(iter->dz());
-        PFCand_dxy_.push_back(iter->dxy());
-        PFCand_dzsig_.push_back(iter->dzsig());
-        PFCand_dxysig_.push_back(iter->dxysig());
-        PFCand_lostInnerHits_.push_back(iter->lostInnerHits());
-        PFCand_quality_.push_back(iter->quality());
-        PFCand_trk_pt_.push_back(iter->trk_pt());
-        PFCand_trk_eta_.push_back(iter->trk_eta());
-        PFCand_trk_phi_.push_back(iter->trk_phi());
-        //PFCand_relative_trk_vars_.push_back(iter->relative_trk_vars());
-
-        auto pfm = pdTable->particle(HepPDT::ParticleID(iter->pdgId())) != nullptr
-                        ? pdTable->particle(HepPDT::ParticleID(iter->pdgId()))->mass()
-                        : -99.f;
-        PFCand_m_.push_back(pfm);
-
-        auto pfc = pdTable->particle(HepPDT::ParticleID(iter->pdgId())) != nullptr
-                        ? pdTable->particle(HepPDT::ParticleID(iter->pdgId()))->charge()
-                        : -99.f;
-        PFCand_charge_.push_back(pfc);
-
-        if (pfm > -1) {
-             math::PtEtaPhiMLorentzVector p4(iter->pt(), iter->eta(), iter->phi(), pfm);
-             fj_part.emplace_back(p4.px(), p4.py(), p4.pz(), p4.energy());
-             fj_part.back().set_user_index(iter->pdgId());
-        }
-
         n_pfcand++;
     }
 
-    JetDefinition ak8_def = JetDefinition(antikt_algorithm, 0.8);
-    double sd_z_cut = 0.10;
-    double sd_beta = 0;
-    SoftDrop sd_groomer = SoftDrop(sd_z_cut, sd_beta, 1.0);
-    Filter trimmer = Filter(JetDefinition(kt_algorithm, 0.2), SelectorPtFractionMin(0.03));
-
-    double beta = 1.0;
-    Nsubjettiness nSub1 = Nsubjettiness(1, OnePass_WTA_KT_Axes(), UnnormalizedMeasure(beta));
-    Nsubjettiness nSub2 = Nsubjettiness(2, OnePass_WTA_KT_Axes(), UnnormalizedMeasure(beta));
-    Nsubjettiness nSub3 = Nsubjettiness(3, OnePass_WTA_KT_Axes(), UnnormalizedMeasure(beta));
-    Nsubjettiness nSub4 = Nsubjettiness(4, OnePass_WTA_KT_Axes(), UnnormalizedMeasure(beta));
-    Nsubjettiness nSub5 = Nsubjettiness(5, OnePass_WTA_KT_Axes(), UnnormalizedMeasure(beta));
-
-    EnergyCorrelatorN2 N2=EnergyCorrelatorN2(1.0);
-    EnergyCorrelatorN3 N3=EnergyCorrelatorN3(1.0);
-
-    fastjet::GhostedAreaSpec area_spec(5.0,1,0.01);
-    fastjet::AreaDefinition area_def(fastjet::active_area, area_spec);
-
-    ClusterSequenceArea ak8_cs(fj_part, ak8_def, area_def);
-    vector<PseudoJet> ak8_jets = sorted_by_pt(ak8_cs.inclusive_jets(100.0));
-
-    n_fatjet = 0;
-    for(auto &j: ak8_jets) {
-        FatJet_area_.push_back(j.area());
-        FatJet_eta_.push_back(j.pseudorapidity());
-        FatJet_mass_.push_back(j.m());
-        FatJet_phi_.push_back(j.phi_std());
-        FatJet_pt_.push_back(j.pt());
-
-        PseudoJet sd_ak8 = sd_groomer(j);
-        FatJet_msoftdrop_.push_back(sd_ak8.m());
-        
-        PseudoJet trimmed_ak8 = trimmer(j);
-        FatJet_mtrim_.push_back(trimmed_ak8.m());
-        
-        FatJet_n2b1_.push_back(N2(sd_ak8));
-        FatJet_n3b1_.push_back(N3(sd_ak8));
-        FatJet_tau1_.push_back(nSub1.result(j));
-        FatJet_tau2_.push_back(nSub2.result(j));
-        FatJet_tau3_.push_back(nSub3.result(j));
-        FatJet_tau4_.push_back(nSub4.result(j));
-        n_fatjet++;
-   }
-
-    n_track = 0;
-    for (auto iter = tracksH->begin(); iter != tracksH->end(); ++iter) {
-        Track_pt_.push_back(iter->tk_pt());
-        Track_eta_.push_back(iter->tk_eta());
-        Track_phi_.push_back(iter->tk_phi());
-        Track_chi2_.push_back(iter->tk_chi2());
-        Track_ndof_.push_back(iter->tk_ndof());
-        Track_charge_.push_back(iter->tk_charge());
-        Track_dxy_.push_back(iter->tk_dxy());
-        Track_dz_.push_back(iter->tk_dz());
-        Track_nValidPixelHits_.push_back(iter->tk_nValidPixelHits());
-        Track_nTrackerLayersWithMeasurement_.push_back(iter->tk_nTrackerLayersWithMeasurement());
-        Track_nValidStripHits_.push_back(iter->tk_nValidStripHits());
-        Track_qoverp_.push_back(iter->tk_qoverp());
-        Track_lambda_.push_back(iter->tk_lambda());
-        Track_dxy_Error_.push_back(iter->tk_dxy_Error());
-        Track_dz_Error_.push_back(iter->tk_dz_Error());
-        Track_qoverp_Error_.push_back(iter->tk_qoverp_Error());
-        Track_lambda_Error_.push_back(iter->tk_lambda_Error());
-        Track_phi_Error_.push_back(iter->tk_phi_Error());
-        Track_dsz_.push_back(iter->tk_dsz());
-        Track_dsz_Error_.push_back(iter->tk_dsz_Error());
-        Track_qoverp_lambda_cov_.push_back(iter->tk_qoverp_lambda_cov());
-        Track_qoverp_phi_cov_.push_back(iter->tk_qoverp_phi_cov());
-        Track_qoverp_dxy_cov_.push_back(iter->tk_qoverp_dxy_cov());
-        Track_qoverp_dsz_cov_.push_back(iter->tk_qoverp_dsz_cov());
-        Track_lambda_phi_cov_.push_back(iter->tk_lambda_phi_cov());
-        Track_lambda_dxy_cov_.push_back(iter->tk_lambda_dxy_cov());
-        Track_lambda_dsz_cov_.push_back(iter->tk_lambda_dsz_cov());
-        Track_phi_dxy_cov_.push_back(iter->tk_phi_dxy_cov());
-        Track_phi_dsz_cov_.push_back(iter->tk_phi_dsz_cov());
-        Track_dxy_dsz_cov_.push_back(iter->tk_dxy_dsz_cov());
-        Track_vtxInd_.push_back(iter->tk_vtxInd());
-        Track_vx_.push_back(iter->tk_vx());
-        Track_vy_.push_back(iter->tk_vy());
-        Track_vz_.push_back(iter->tk_vz());
-        n_track++;
-    } 
+    //n_track = 0;
+    //for (auto iter = tracksH->begin(); iter != tracksH->end(); ++iter) {
+    //    Track_pt_.push_back(iter->tk_pt());
+    //    Track_eta_.push_back(iter->tk_eta());
+    //    Track_phi_.push_back(iter->tk_phi());
+    //    Track_chi2_.push_back(iter->tk_chi2());
+    //    Track_ndof_.push_back(iter->tk_ndof());
+    //    Track_charge_.push_back(iter->tk_charge());
+    //    Track_dxy_.push_back(iter->tk_dxy());
+    //    Track_dz_.push_back(iter->tk_dz());
+    //    Track_nValidPixelHits_.push_back(iter->tk_nValidPixelHits());
+    //    Track_nTrackerLayersWithMeasurement_.push_back(iter->tk_nTrackerLayersWithMeasurement());
+    //    Track_nValidStripHits_.push_back(iter->tk_nValidStripHits());
+    //    Track_qoverp_.push_back(iter->tk_qoverp());
+    //    Track_lambda_.push_back(iter->tk_lambda());
+    //    Track_dxy_Error_.push_back(iter->tk_dxy_Error());
+    //    Track_dz_Error_.push_back(iter->tk_dz_Error());
+    //    Track_qoverp_Error_.push_back(iter->tk_qoverp_Error());
+    //    Track_lambda_Error_.push_back(iter->tk_lambda_Error());
+    //    Track_phi_Error_.push_back(iter->tk_phi_Error());
+    //    Track_dsz_.push_back(iter->tk_dsz());
+    //    Track_dsz_Error_.push_back(iter->tk_dsz_Error());
+    //    Track_qoverp_lambda_cov_.push_back(iter->tk_qoverp_lambda_cov());
+    //    Track_qoverp_phi_cov_.push_back(iter->tk_qoverp_phi_cov());
+    //    Track_qoverp_dxy_cov_.push_back(iter->tk_qoverp_dxy_cov());
+    //    Track_qoverp_dsz_cov_.push_back(iter->tk_qoverp_dsz_cov());
+    //    Track_lambda_phi_cov_.push_back(iter->tk_lambda_phi_cov());
+    //    Track_lambda_dxy_cov_.push_back(iter->tk_lambda_dxy_cov());
+    //    Track_lambda_dsz_cov_.push_back(iter->tk_lambda_dsz_cov());
+    //    Track_phi_dxy_cov_.push_back(iter->tk_phi_dxy_cov());
+    //    Track_phi_dsz_cov_.push_back(iter->tk_phi_dsz_cov());
+    //    Track_dxy_dsz_cov_.push_back(iter->tk_dxy_dsz_cov());
+    //    Track_vtxInd_.push_back(iter->tk_vtxInd());
+    //    Track_vx_.push_back(iter->tk_vx());
+    //    Track_vy_.push_back(iter->tk_vy());
+    //    Track_vz_.push_back(iter->tk_vz());
+    //    n_track++;
+    //} 
 
     n_primaryvtx = 0;
     for (auto iter = pvH->begin(); iter != pvH->end(); ++iter) {
@@ -1164,7 +1031,7 @@ void ScoutingNanoAOD::clearVars(){
     Jet_eta_.clear();
     Jet_phi_.clear();
     Jet_m_.clear();
-    Jet_jetArea_.clear();
+    Jet_area_.clear();
     Jet_chargedHadronEnergy_.clear();
     Jet_neutralHadronEnergy_.clear();
     Jet_photonEnergy_.clear();
@@ -1183,71 +1050,45 @@ void ScoutingNanoAOD::clearVars(){
     Jet_csv_.clear();
     Jet_mvaDiscriminator_.clear();
     Jet_constituents_.clear();
-    FatJet_area_.clear();
-    FatJet_eta_.clear();
-    FatJet_n2b1_.clear();
-    FatJet_n3b1_.clear();
-    FatJet_phi_.clear();
-    FatJet_pt_.clear();
-    FatJet_tau1_.clear();
-    FatJet_tau2_.clear();
-    FatJet_tau3_.clear();
-    FatJet_tau4_.clear();
-    FatJet_mass_.clear();
-    FatJet_msoftdrop_.clear();
-    FatJet_mtrim_.clear();
     PFCand_pt_.clear();
     PFCand_eta_.clear();
     PFCand_phi_.clear();
     PFCand_pdgId_.clear();
     PFCand_vertex_.clear();
-    PFCand_normchi2_.clear();
-    PFCand_dz_.clear();
-    PFCand_dxy_.clear();
-    PFCand_dzsig_.clear();
-    PFCand_dxysig_.clear();
-    PFCand_lostInnerHits_.clear();
-    PFCand_quality_.clear();
-    PFCand_trk_pt_.clear();
-    PFCand_trk_eta_.clear();
-    PFCand_trk_phi_.clear();
-    //PFCand_relative_trk_vars_.clear();
-    PFCand_m_.clear();
-    PFCand_charge_.clear();
-    Track_pt_.clear();
-    Track_eta_.clear();
-    Track_phi_.clear();
-    Track_chi2_.clear();
-    Track_ndof_.clear();
-    Track_charge_.clear();
-    Track_dxy_.clear();
-    Track_dz_.clear();
-    Track_nValidPixelHits_.clear();
-    Track_nTrackerLayersWithMeasurement_.clear();
-    Track_nValidStripHits_.clear();
-    Track_qoverp_.clear();
-    Track_lambda_.clear();
-    Track_dxy_Error_.clear();
-    Track_dz_Error_.clear();
-    Track_qoverp_Error_.clear();
-    Track_lambda_Error_.clear();
-    Track_phi_Error_.clear();
-    Track_dsz_.clear();
-    Track_dsz_Error_.clear();
-    Track_qoverp_lambda_cov_.clear();
-    Track_qoverp_phi_cov_.clear();
-    Track_qoverp_dxy_cov_.clear();
-    Track_qoverp_dsz_cov_.clear();
-    Track_lambda_phi_cov_.clear();
-    Track_lambda_dxy_cov_.clear();
-    Track_lambda_dsz_cov_.clear();
-    Track_phi_dxy_cov_.clear();
-    Track_phi_dsz_cov_.clear();
-    Track_dxy_dsz_cov_.clear();
-    Track_vtxInd_.clear();
-    Track_vx_.clear();
-    Track_vy_.clear();
-    Track_vz_.clear();
+    //Track_pt_.clear();
+    //Track_eta_.clear();
+    //Track_phi_.clear();
+    //Track_chi2_.clear();
+    //Track_ndof_.clear();
+    //Track_charge_.clear();
+    //Track_dxy_.clear();
+    //Track_dz_.clear();
+    //Track_nValidPixelHits_.clear();
+    //Track_nTrackerLayersWithMeasurement_.clear();
+    //Track_nValidStripHits_.clear();
+    //Track_qoverp_.clear();
+    //Track_lambda_.clear();
+    //Track_dxy_Error_.clear();
+    //Track_dz_Error_.clear();
+    //Track_qoverp_Error_.clear();
+    //Track_lambda_Error_.clear();
+    //Track_phi_Error_.clear();
+    //Track_dsz_.clear();
+    //Track_dsz_Error_.clear();
+    //Track_qoverp_lambda_cov_.clear();
+    //Track_qoverp_phi_cov_.clear();
+    //Track_qoverp_dxy_cov_.clear();
+    //Track_qoverp_dsz_cov_.clear();
+    //Track_lambda_phi_cov_.clear();
+    //Track_lambda_dxy_cov_.clear();
+    //Track_lambda_dsz_cov_.clear();
+    //Track_phi_dxy_cov_.clear();
+    //Track_phi_dsz_cov_.clear();
+    //Track_dxy_dsz_cov_.clear();
+    //Track_vtxInd_.clear();
+    //Track_vx_.clear();
+    //Track_vy_.clear();
+    //Track_vz_.clear();
     PrimaryVtx_x_.clear();
     PrimaryVtx_y_.clear();
     PrimaryVtx_z_.clear();
