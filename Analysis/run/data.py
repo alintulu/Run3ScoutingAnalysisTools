@@ -1,7 +1,7 @@
 from CRABClient.UserUtilities import config
 config = config()
 
-config.General.requestName = 'ScoutingPFRun3'
+config.General.requestName = 'ScoutingPFRun3_2nd'
 config.General.workArea = 'crab_projects'
 config.General.transferOutputs = True
 
