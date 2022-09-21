@@ -109,6 +109,7 @@
 #include "DataFormats/BTauReco/interface/TaggingVariable.h"
 
 #include "Run3ScoutingAnalysisTools/Analysis/interface/FatJetMatching.h"
+#include "SimGeneral/HepPDTRecord/interface/ParticleDataTable.h"
 
 using namespace std;
 using namespace deepntuples;
@@ -203,13 +204,15 @@ private:
 
   bool isQCD;
   const edm::EDGetTokenT<reco::GenJetCollection> genjetToken;
+  const edm::ESGetToken<HepPDT::ParticleDataTable, edm::DefaultRecord> particleTableToken;
 };
 
 ScoutingNanoAOD::ScoutingNanoAOD(const edm::ParameterSet& iConfig):
   pfcandsParticleNetToken  (consumes<std::vector<Run3ScoutingParticle> > (iConfig.getParameter<edm::InputTag>("pfcandsParticleNet"))),
   genpartsToken            (consumes<reco::GenParticleCollection> (iConfig.getParameter<edm::InputTag>("genpart"))),
   isQCD                    (iConfig.existsAs<bool>("isQCD") ? iConfig.getParameter<bool>("isQCD") : false),
-  genjetToken                (consumes<reco::GenJetCollection>(iConfig.getParameter<edm::InputTag>("ak8genjet")))
+  genjetToken                (consumes<reco::GenJetCollection>(iConfig.getParameter<edm::InputTag>("ak8genjet"))),
+  particleTableToken       (esConsumes<HepPDT::ParticleDataTable, edm::DefaultRecord>())
 {
   usesResource("TFileService");
 
@@ -301,12 +304,21 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
   Handle<GenJetCollection> genjetH;
   iEvent.getByToken(genjetToken, genjetH);
 
+  auto pdt = iSetup.getHandle(particleTableToken);
+  const HepPDT::ParticleDataTable* pdTable = pdt.product();
+
   // Create AK8 Jet
   vector<PseudoJet> fj_part;
   fj_part.reserve(pfcandsParticleNetH->size());
   int pfcand_i = 0;
   for (auto pfcands_iter = pfcandsParticleNetH->begin(); pfcands_iter != pfcandsParticleNetH->end(); ++pfcands_iter) {
-    math::PtEtaPhiMLorentzVector p4(pfcands_iter->pt(), pfcands_iter->eta(), pfcands_iter->phi(), pfcands_iter->m());
+
+    auto pfm = pdTable->particle(HepPDT::ParticleID(pfcands_iter->pdgId())) != nullptr
+                        ? pdTable->particle(HepPDT::ParticleID(pfcands_iter->pdgId()))->mass()
+                        : -99.f;
+    if (pfm < -90) continue;
+
+    math::PtEtaPhiMLorentzVector p4(pfcands_iter->pt(), pfcands_iter->eta(), pfcands_iter->phi(), pfm);
     fj_part.emplace_back(p4.px(), p4.py(), p4.pz(), p4.energy());
     fj_part.back().set_user_index(pfcand_i);
     pfcand_i++;
@@ -415,8 +427,13 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
       double track_mag = sqrt(trk_px * trk_px + trk_py * trk_py + trk_pz * trk_pz);
 
       float reco_cand_p = reco_cand->pt() * cosh(reco_cand->eta());
+      auto rcm = pdTable->particle(HepPDT::ParticleID(reco_cand->pdgId())) != nullptr
+                        ? pdTable->particle(HepPDT::ParticleID(reco_cand->pdgId()))->mass()
+                        : -99.f;
+      if (rcm < -90) continue;
+
+      pfcand_e_log_nopuppi.push_back(log(sqrt(reco_cand_p*reco_cand_p + rcm*rcm)));
       pfcand_pt_log_nopuppi.push_back(log(reco_cand->pt()));
-      pfcand_e_log_nopuppi.push_back(log(sqrt(reco_cand_p*reco_cand_p + reco_cand->m()*reco_cand->m())));
       pfcand_etarel.push_back(etasign * (reco_cand->eta() - j.eta()));
       pfcand_phirel.push_back(deltaPhi(reco_cand->phi(), j.phi()));
       pfcand_abseta.push_back(abs(reco_cand->eta()));
