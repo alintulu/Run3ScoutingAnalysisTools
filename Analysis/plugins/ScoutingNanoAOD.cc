@@ -103,6 +103,7 @@
 #include "fastjet/contrib/EnergyCorrelator.hh"
 #include "fastjet/JadePlugin.hh"
 #include "fastjet/contrib/SoftKiller.hh"
+#include "SimGeneral/HepPDTRecord/interface/ParticleDataTable.h"
 
 using namespace std;
 
@@ -137,10 +138,10 @@ private:
     const edm::EDGetTokenT<double>  	rhoToken;
     const edm::EDGetTokenT<double>  	pfMetToken;
     const edm::EDGetTokenT<double>  	pfMetPhiToken;
-  
 
     //const edm::EDGetTokenT<GenEventInfoProduct>             genEvtInfoToken;	
     bool doL1;       
+    const edm::ESGetToken<HepPDT::ParticleDataTable, edm::DefaultRecord> particleTableToken;
 	
     edm::InputTag                algInputTag_;       
     edm::InputTag                extInputTag_;       
@@ -167,7 +168,9 @@ private:
     vector<Float_t> Photon_sMaj_;
     vector<UInt_t> Photon_seedId_;
     vector<vector<Float_t> > Photon_energyMatrix_;
+    vector<vector<UInt_t> > Photon_detIds_;
     vector<vector<Float_t> > Photon_timingMatrix_;
+    vector<bool> Photon_rechitZeroSuppression_;
 
     //Electron
     const static int 	max_ele = 1000;
@@ -193,7 +196,9 @@ private:
     vector<Float_t> Electron_sMaj_;
     vector<UInt_t> Electron_seedId_;
     vector<vector<Float_t> > Electron_energyMatrix_;
+    //vector<vector<UInt_t> > Electron_detIds_;
     vector<vector<Float_t> > Electron_timingMatrix_;
+    //vector<bool> Electron_rechitZeroSuppression_;
 
     //Muon
     const static int 	max_mu = 1000;
@@ -263,7 +268,7 @@ private:
     vector<Float_t> Jet_eta_;
     vector<Float_t> Jet_phi_;
     vector<Float_t> Jet_m_;
-    vector<Float_t> Jet_jetArea_;
+    vector<Float_t> Jet_area_;
     vector<Float_t> Jet_chargedHadronEnergy_;
     vector<Float_t> Jet_neutralHadronEnergy_;
     vector<Float_t> Jet_photonEnergy_;
@@ -289,7 +294,6 @@ private:
     vector<Float_t> PFCand_pt_;
     vector<Float_t> PFCand_eta_;
     vector<Float_t> PFCand_phi_;
-    vector<Float_t> PFCand_m_;
     vector<Int_t> PFCand_pdgId_;
     vector<Int_t> PFCand_vertex_;
 
@@ -385,7 +389,8 @@ ScoutingNanoAOD::ScoutingNanoAOD(const edm::ParameterSet& iConfig):
     rhoToken             (consumes<double>(iConfig.getParameter<edm::InputTag>("rho"))),
     pfMetToken             (consumes<double>(iConfig.getParameter<edm::InputTag>("pfMet"))),
     pfMetPhiToken             (consumes<double>(iConfig.getParameter<edm::InputTag>("pfMetPhi"))),
-    doL1                     (iConfig.existsAs<bool>("doL1")               ?    iConfig.getParameter<bool>  ("doL1")            : false)
+    doL1                     (iConfig.existsAs<bool>("doL1")               ?    iConfig.getParameter<bool>  ("doL1")            : false),
+    particleTableToken       (esConsumes<HepPDT::ParticleDataTable, edm::DefaultRecord>())
 {
     usesResource("TFileService");
     if (doL1) {
@@ -439,8 +444,10 @@ ScoutingNanoAOD::ScoutingNanoAOD(const edm::ParameterSet& iConfig):
     tree->Branch("Electron_sMin", &Electron_sMin_ );
     tree->Branch("Electron_sMaj", &Electron_sMaj_ );
     tree->Branch("Electron_seedId", &Electron_seedId_ );
+    tree->Branch("Electron_detIds", &Electron_detIds_ );
     tree->Branch("Electron_energyMatrix", &Electron_energyMatrix_ );
     tree->Branch("Electron_timingMatrix", &Electron_timingMatrix_ );
+    tree->Branch("Electron_rechitZeroSuppression", &Electron_rechitZeroSuppression_ );
 
     //Muons
     tree->Branch("n_mu"            	   ,&n_mu 			, "n_mu/i"		);
@@ -515,8 +522,10 @@ ScoutingNanoAOD::ScoutingNanoAOD(const edm::ParameterSet& iConfig):
     tree->Branch("Photon_sMin", &Photon_sMin_ );
     tree->Branch("Photon_sMaj", &Photon_sMaj_ );
     tree->Branch("Photon_seedId", &Photon_seedId_ );
+    tree->Branch("Photon_detIds", &Photon_detIds_ );
     tree->Branch("Photon_energyMatrix", &Photon_energyMatrix_ );
     tree->Branch("Photon_timingMatrix", &Photon_timingMatrix_ );
+    tree->Branch("Photon_rechitZeroSuppression", &Photon_rechitZeroSuppression_ );
 
     //PFJets
     tree->Branch("n_jet"            	   	,&n_jet 			, "n_jet/i"		);
@@ -524,7 +533,7 @@ ScoutingNanoAOD::ScoutingNanoAOD(const edm::ParameterSet& iConfig):
     tree->Branch("Jet_eta", &Jet_eta_ );
     tree->Branch("Jet_phi", &Jet_phi_ );
     tree->Branch("Jet_m", &Jet_m_ );
-    tree->Branch("Jet_jetArea", &Jet_jetArea_ );
+    tree->Branch("Jet_area", &Jet_area_ );
     tree->Branch("Jet_chargedHadronEnergy", &Jet_chargedHadronEnergy_ );
     tree->Branch("Jet_neutralHadronEnergy", &Jet_neutralHadronEnergy_ );
     tree->Branch("Jet_photonEnergy", &Jet_photonEnergy_ );
@@ -543,53 +552,51 @@ ScoutingNanoAOD::ScoutingNanoAOD(const edm::ParameterSet& iConfig):
     tree->Branch("Jet_csv", &Jet_csv_ );
     tree->Branch("Jet_mvaDiscriminator", &Jet_mvaDiscriminator_ );
     tree->Branch("Jet_constituents", &Jet_constituents_ );
-      
+
     //PFCands
     tree->Branch("n_pfcand"            	   ,&n_pfcand 		,"n_pfcand/i"		);	
     tree->Branch("PFCand_pt", &PFCand_pt_ );
     tree->Branch("PFCand_eta", &PFCand_eta_ );
     tree->Branch("PFCand_phi", &PFCand_phi_ );
-    tree->Branch("PFCand_m", &PFCand_m_ );
     tree->Branch("PFCand_pdgId", &PFCand_pdgId_ );
     tree->Branch("PFCand_vertex", &PFCand_vertex_ );
 
-
     //Tracks
-    tree->Branch("n_track"            	   	,&n_track 			, "n_track/i"		);
-    tree->Branch("Track_pt", &Track_pt_ );
-    tree->Branch("Track_eta", &Track_eta_ );
-    tree->Branch("Track_phi", &Track_phi_ );
-    tree->Branch("Track_chi2", &Track_chi2_ );
-    tree->Branch("Track_ndof", &Track_ndof_ );
-    tree->Branch("Track_charge", &Track_charge_ );
-    tree->Branch("Track_dxy", &Track_dxy_ );
-    tree->Branch("Track_dz", &Track_dz_ );
-    tree->Branch("Track_nValidPixelHits", &Track_nValidPixelHits_ );
-    tree->Branch("Track_nTrackerLayersWithMeasurement", &Track_nTrackerLayersWithMeasurement_ );
-    tree->Branch("Track_nValidStripHits", &Track_nValidStripHits_ );
-    tree->Branch("Track_qoverp", &Track_qoverp_ );
-    tree->Branch("Track_lambda", &Track_lambda_ );
-    tree->Branch("Track_dxy_Error", &Track_dxy_Error_ );
-    tree->Branch("Track_dz_Error", &Track_dz_Error_ );
-    tree->Branch("Track_qoverp_Error", &Track_qoverp_Error_ );
-    tree->Branch("Track_lambda_Error", &Track_lambda_Error_ );
-    tree->Branch("Track_phi_Error", &Track_phi_Error_ );
-    tree->Branch("Track_dsz", &Track_dsz_ );
-    tree->Branch("Track_dsz_Error", &Track_dsz_Error_ );
-    tree->Branch("Track_qoverp_lambda_cov", &Track_qoverp_lambda_cov_ );
-    tree->Branch("Track_qoverp_phi_cov", &Track_qoverp_phi_cov_ );
-    tree->Branch("Track_qoverp_dxy_cov", &Track_qoverp_dxy_cov_ );
-    tree->Branch("Track_qoverp_dsz_cov", &Track_qoverp_dsz_cov_ );
-    tree->Branch("Track_lambda_phi_cov", &Track_lambda_phi_cov_ );
-    tree->Branch("Track_lambda_dxy_cov", &Track_lambda_dxy_cov_ );
-    tree->Branch("Track_lambda_dsz_cov", &Track_lambda_dsz_cov_ );
-    tree->Branch("Track_phi_dxy_cov", &Track_phi_dxy_cov_ );
-    tree->Branch("Track_phi_dsz_cov", &Track_phi_dsz_cov_ );
-    tree->Branch("Track_dxy_dsz_cov", &Track_dxy_dsz_cov_ );
-    tree->Branch("Track_vtxInd", &Track_vtxInd_ );
-    tree->Branch("Track_vx", &Track_vx_ );
-    tree->Branch("Track_vy", &Track_vy_ );
-    tree->Branch("Track_vz", &Track_vz_ );
+    //tree->Branch("n_track"            	   	,&n_track 			, "n_track/i"		);
+    //tree->Branch("Track_pt", &Track_pt_ );
+    //tree->Branch("Track_eta", &Track_eta_ );
+    //tree->Branch("Track_phi", &Track_phi_ );
+    //tree->Branch("Track_chi2", &Track_chi2_ );
+    //tree->Branch("Track_ndof", &Track_ndof_ );
+    //tree->Branch("Track_charge", &Track_charge_ );
+    //tree->Branch("Track_dxy", &Track_dxy_ );
+    //tree->Branch("Track_dz", &Track_dz_ );
+    //tree->Branch("Track_nValidPixelHits", &Track_nValidPixelHits_ );
+    //tree->Branch("Track_nTrackerLayersWithMeasurement", &Track_nTrackerLayersWithMeasurement_ );
+    //tree->Branch("Track_nValidStripHits", &Track_nValidStripHits_ );
+    //tree->Branch("Track_qoverp", &Track_qoverp_ );
+    //tree->Branch("Track_lambda", &Track_lambda_ );
+    //tree->Branch("Track_dxy_Error", &Track_dxy_Error_ );
+    //tree->Branch("Track_dz_Error", &Track_dz_Error_ );
+    //tree->Branch("Track_qoverp_Error", &Track_qoverp_Error_ );
+    //tree->Branch("Track_lambda_Error", &Track_lambda_Error_ );
+    //tree->Branch("Track_phi_Error", &Track_phi_Error_ );
+    //tree->Branch("Track_dsz", &Track_dsz_ );
+    //tree->Branch("Track_dsz_Error", &Track_dsz_Error_ );
+    //tree->Branch("Track_qoverp_lambda_cov", &Track_qoverp_lambda_cov_ );
+    //tree->Branch("Track_qoverp_phi_cov", &Track_qoverp_phi_cov_ );
+    //tree->Branch("Track_qoverp_dxy_cov", &Track_qoverp_dxy_cov_ );
+    //tree->Branch("Track_qoverp_dsz_cov", &Track_qoverp_dsz_cov_ );
+    //tree->Branch("Track_lambda_phi_cov", &Track_lambda_phi_cov_ );
+    //tree->Branch("Track_lambda_dxy_cov", &Track_lambda_dxy_cov_ );
+    //tree->Branch("Track_lambda_dsz_cov", &Track_lambda_dsz_cov_ );
+    //tree->Branch("Track_phi_dxy_cov", &Track_phi_dxy_cov_ );
+    //tree->Branch("Track_phi_dsz_cov", &Track_phi_dsz_cov_ );
+    //tree->Branch("Track_dxy_dsz_cov", &Track_dxy_dsz_cov_ );
+    //tree->Branch("Track_vtxInd", &Track_vtxInd_ );
+    //tree->Branch("Track_vx", &Track_vx_ );
+    //tree->Branch("Track_vy", &Track_vy_ );
+    //tree->Branch("Track_vz", &Track_vz_ );
 
     //Primary Vertex
     tree->Branch("PrimaryVtx_x", &PrimaryVtx_x_ );
@@ -616,7 +623,7 @@ ScoutingNanoAOD::ScoutingNanoAOD(const edm::ParameterSet& iConfig):
     tree->Branch("DisplacedVtx_isValidVtx", &DisplacedVtx_isValidVtx_ );
 
     //PF Met
-    tree->Branch("PFMet_Et", &pfMet );
+    tree->Branch("PFMet_Pt", &pfMet );
     tree->Branch("PFMet_Phi", &pfMetPhi );
 
     //
@@ -632,6 +639,8 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
     using namespace edm;
     using namespace std;
     using namespace reco;
+    using namespace fastjet;
+    using namespace fastjet::contrib;
     
     Handle<vector<Run3ScoutingElectron> > electronsH;
     iEvent.getByToken(electronsToken, electronsH);
@@ -672,15 +681,18 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
     run = iEvent.eventAuxiliary().run();
     lumSec = iEvent.eventAuxiliary().luminosityBlock();
 
+    auto pdt = iSetup.getHandle(particleTableToken);
+    const HepPDT::ParticleDataTable* pdTable = pdt.product();
+
     if (doL1) {
         l1GtUtils_->retrieveL1(iEvent,iSetup,algToken_);
-        for( int r = 0; r<280; r++){
-            string name ("empty");
-            bool algoName_ = false;
-            algoName_ = l1GtUtils_->getAlgNameFromBit(r,name);
-            cout << "getAlgNameFromBit = " << algoName_  << endl;
-            cout << "L1 bit number = " << r << " ; L1 bit name = " << name << endl;
-        }
+        //for( int r = 0; r<280; r++){
+        //    string name ("empty");
+        //    bool algoName_ = false;
+        //    algoName_ = l1GtUtils_->getAlgNameFromBit(r,name);
+        //    cout << "getAlgNameFromBit = " << algoName_  << endl;
+        //    cout << "L1 bit number = " << r << " ; L1 bit name = " << name << endl;
+        //}
         for( unsigned int iseed = 0; iseed < l1Seeds_.size(); iseed++ ) {
             bool l1htbit = 0;	
 			
@@ -714,8 +726,10 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
         Electron_sMin_.push_back(iter->sMin());
         Electron_sMaj_.push_back(iter->sMaj());
         Electron_seedId_.push_back(iter->seedId());
+        Electron_detIds_.push_back(vector<UInt_t>(iter->detIds()));
         Electron_energyMatrix_.push_back(vector<Float_t>(iter->energyMatrix()));
         Electron_timingMatrix_.push_back(vector<Float_t>(iter->timingMatrix()));
+        Electron_rechitZeroSuppression_.push_back(iter->rechitZeroSuppression());
         n_ele++;
     }
 
@@ -795,8 +809,10 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
         Photon_sMin_.push_back(iter->sMin());
         Photon_sMaj_.push_back(iter->sMaj());
         Photon_seedId_.push_back(iter->seedId());
+        Photon_detIds_.push_back(vector<UInt_t>(iter->detIds()));
         Photon_energyMatrix_.push_back(vector<Float_t>(iter->energyMatrix()));
         Photon_timingMatrix_.push_back(vector<Float_t>(iter->timingMatrix()));    
+        Photon_rechitZeroSuppression_.push_back(iter->rechitZeroSuppression());
         n_pho++;
     }
 
@@ -806,7 +822,7 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
         Jet_eta_.push_back(iter->eta());
         Jet_phi_.push_back(iter->phi());
         Jet_m_.push_back(iter->m());
-        Jet_jetArea_.push_back(iter->jetArea());
+        Jet_area_.push_back(iter->jetArea());
         Jet_chargedHadronEnergy_.push_back(iter->chargedHadronEnergy());
         Jet_neutralHadronEnergy_.push_back(iter->neutralHadronEnergy());
         Jet_photonEnergy_.push_back(iter->photonEnergy());
@@ -833,50 +849,49 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
         PFCand_pt_.push_back(iter->pt());
         PFCand_eta_.push_back(iter->eta());
         PFCand_phi_.push_back(iter->phi());
-        PFCand_m_.push_back(iter->m());
         PFCand_pdgId_.push_back(iter->pdgId());
-        PFCand_vertex_.push_back(iter->vertex());        
+        PFCand_vertex_.push_back(iter->vertex());
         n_pfcand++;
-    } 
+    }
 
-    n_track = 0;
-    for (auto iter = tracksH->begin(); iter != tracksH->end(); ++iter) {
-        Track_pt_.push_back(iter->tk_pt());
-        Track_eta_.push_back(iter->tk_eta());
-        Track_phi_.push_back(iter->tk_phi());
-        Track_chi2_.push_back(iter->tk_chi2());
-        Track_ndof_.push_back(iter->tk_ndof());
-        Track_charge_.push_back(iter->tk_charge());
-        Track_dxy_.push_back(iter->tk_dxy());
-        Track_dz_.push_back(iter->tk_dz());
-        Track_nValidPixelHits_.push_back(iter->tk_nValidPixelHits());
-        Track_nTrackerLayersWithMeasurement_.push_back(iter->tk_nTrackerLayersWithMeasurement());
-        Track_nValidStripHits_.push_back(iter->tk_nValidStripHits());
-        Track_qoverp_.push_back(iter->tk_qoverp());
-        Track_lambda_.push_back(iter->tk_lambda());
-        Track_dxy_Error_.push_back(iter->tk_dxy_Error());
-        Track_dz_Error_.push_back(iter->tk_dz_Error());
-        Track_qoverp_Error_.push_back(iter->tk_qoverp_Error());
-        Track_lambda_Error_.push_back(iter->tk_lambda_Error());
-        Track_phi_Error_.push_back(iter->tk_phi_Error());
-        Track_dsz_.push_back(iter->tk_dsz());
-        Track_dsz_Error_.push_back(iter->tk_dsz_Error());
-        Track_qoverp_lambda_cov_.push_back(iter->tk_qoverp_lambda_cov());
-        Track_qoverp_phi_cov_.push_back(iter->tk_qoverp_phi_cov());
-        Track_qoverp_dxy_cov_.push_back(iter->tk_qoverp_dxy_cov());
-        Track_qoverp_dsz_cov_.push_back(iter->tk_qoverp_dsz_cov());
-        Track_lambda_phi_cov_.push_back(iter->tk_lambda_phi_cov());
-        Track_lambda_dxy_cov_.push_back(iter->tk_lambda_dxy_cov());
-        Track_lambda_dsz_cov_.push_back(iter->tk_lambda_dsz_cov());
-        Track_phi_dxy_cov_.push_back(iter->tk_phi_dxy_cov());
-        Track_phi_dsz_cov_.push_back(iter->tk_phi_dsz_cov());
-        Track_dxy_dsz_cov_.push_back(iter->tk_dxy_dsz_cov());
-        Track_vtxInd_.push_back(iter->tk_vtxInd());
-        Track_vx_.push_back(iter->tk_vx());
-        Track_vy_.push_back(iter->tk_vy());
-        Track_vz_.push_back(iter->tk_vz());
-        n_track++;
-    } 
+    //n_track = 0;
+    //for (auto iter = tracksH->begin(); iter != tracksH->end(); ++iter) {
+    //    Track_pt_.push_back(iter->tk_pt());
+    //    Track_eta_.push_back(iter->tk_eta());
+    //    Track_phi_.push_back(iter->tk_phi());
+    //    Track_chi2_.push_back(iter->tk_chi2());
+    //    Track_ndof_.push_back(iter->tk_ndof());
+    //    Track_charge_.push_back(iter->tk_charge());
+    //    Track_dxy_.push_back(iter->tk_dxy());
+    //    Track_dz_.push_back(iter->tk_dz());
+    //    Track_nValidPixelHits_.push_back(iter->tk_nValidPixelHits());
+    //    Track_nTrackerLayersWithMeasurement_.push_back(iter->tk_nTrackerLayersWithMeasurement());
+    //    Track_nValidStripHits_.push_back(iter->tk_nValidStripHits());
+    //    Track_qoverp_.push_back(iter->tk_qoverp());
+    //    Track_lambda_.push_back(iter->tk_lambda());
+    //    Track_dxy_Error_.push_back(iter->tk_dxy_Error());
+    //    Track_dz_Error_.push_back(iter->tk_dz_Error());
+    //    Track_qoverp_Error_.push_back(iter->tk_qoverp_Error());
+    //    Track_lambda_Error_.push_back(iter->tk_lambda_Error());
+    //    Track_phi_Error_.push_back(iter->tk_phi_Error());
+    //    Track_dsz_.push_back(iter->tk_dsz());
+    //    Track_dsz_Error_.push_back(iter->tk_dsz_Error());
+    //    Track_qoverp_lambda_cov_.push_back(iter->tk_qoverp_lambda_cov());
+    //    Track_qoverp_phi_cov_.push_back(iter->tk_qoverp_phi_cov());
+    //    Track_qoverp_dxy_cov_.push_back(iter->tk_qoverp_dxy_cov());
+    //    Track_qoverp_dsz_cov_.push_back(iter->tk_qoverp_dsz_cov());
+    //    Track_lambda_phi_cov_.push_back(iter->tk_lambda_phi_cov());
+    //    Track_lambda_dxy_cov_.push_back(iter->tk_lambda_dxy_cov());
+    //    Track_lambda_dsz_cov_.push_back(iter->tk_lambda_dsz_cov());
+    //    Track_phi_dxy_cov_.push_back(iter->tk_phi_dxy_cov());
+    //    Track_phi_dsz_cov_.push_back(iter->tk_phi_dsz_cov());
+    //    Track_dxy_dsz_cov_.push_back(iter->tk_dxy_dsz_cov());
+    //    Track_vtxInd_.push_back(iter->tk_vtxInd());
+    //    Track_vx_.push_back(iter->tk_vx());
+    //    Track_vy_.push_back(iter->tk_vy());
+    //    Track_vz_.push_back(iter->tk_vz());
+    //    n_track++;
+    //} 
 
     n_primaryvtx = 0;
     for (auto iter = pvH->begin(); iter != pvH->end(); ++iter) {
@@ -929,8 +944,10 @@ void ScoutingNanoAOD::clearVars(){
     Photon_sMin_.clear();
     Photon_sMaj_.clear();
     Photon_seedId_.clear();
+    Photon_detIds_.clear();
     Photon_energyMatrix_.clear();
     Photon_timingMatrix_.clear();
+    Photon_rechitZeroSuppression_.clear();
     Electron_pt_.clear();
     Electron_eta_.clear();
     Electron_phi_.clear();
@@ -951,8 +968,10 @@ void ScoutingNanoAOD::clearVars(){
     Electron_sMin_.clear();
     Electron_sMaj_.clear();
     Electron_seedId_.clear();
+    Electron_detIds_.clear();
     Electron_energyMatrix_.clear();
     Electron_timingMatrix_.clear();
+    Electron_rechitZeroSuppression_.clear();
     Muon_pt_.clear();
     Muon_eta_.clear();
     Muon_phi_.clear();
@@ -1012,7 +1031,7 @@ void ScoutingNanoAOD::clearVars(){
     Jet_eta_.clear();
     Jet_phi_.clear();
     Jet_m_.clear();
-    Jet_jetArea_.clear();
+    Jet_area_.clear();
     Jet_chargedHadronEnergy_.clear();
     Jet_neutralHadronEnergy_.clear();
     Jet_photonEnergy_.clear();
@@ -1034,43 +1053,42 @@ void ScoutingNanoAOD::clearVars(){
     PFCand_pt_.clear();
     PFCand_eta_.clear();
     PFCand_phi_.clear();
-    PFCand_m_.clear();
     PFCand_pdgId_.clear();
     PFCand_vertex_.clear();
-    Track_pt_.clear();
-    Track_eta_.clear();
-    Track_phi_.clear();
-    Track_chi2_.clear();
-    Track_ndof_.clear();
-    Track_charge_.clear();
-    Track_dxy_.clear();
-    Track_dz_.clear();
-    Track_nValidPixelHits_.clear();
-    Track_nTrackerLayersWithMeasurement_.clear();
-    Track_nValidStripHits_.clear();
-    Track_qoverp_.clear();
-    Track_lambda_.clear();
-    Track_dxy_Error_.clear();
-    Track_dz_Error_.clear();
-    Track_qoverp_Error_.clear();
-    Track_lambda_Error_.clear();
-    Track_phi_Error_.clear();
-    Track_dsz_.clear();
-    Track_dsz_Error_.clear();
-    Track_qoverp_lambda_cov_.clear();
-    Track_qoverp_phi_cov_.clear();
-    Track_qoverp_dxy_cov_.clear();
-    Track_qoverp_dsz_cov_.clear();
-    Track_lambda_phi_cov_.clear();
-    Track_lambda_dxy_cov_.clear();
-    Track_lambda_dsz_cov_.clear();
-    Track_phi_dxy_cov_.clear();
-    Track_phi_dsz_cov_.clear();
-    Track_dxy_dsz_cov_.clear();
-    Track_vtxInd_.clear();
-    Track_vx_.clear();
-    Track_vy_.clear();
-    Track_vz_.clear();
+    //Track_pt_.clear();
+    //Track_eta_.clear();
+    //Track_phi_.clear();
+    //Track_chi2_.clear();
+    //Track_ndof_.clear();
+    //Track_charge_.clear();
+    //Track_dxy_.clear();
+    //Track_dz_.clear();
+    //Track_nValidPixelHits_.clear();
+    //Track_nTrackerLayersWithMeasurement_.clear();
+    //Track_nValidStripHits_.clear();
+    //Track_qoverp_.clear();
+    //Track_lambda_.clear();
+    //Track_dxy_Error_.clear();
+    //Track_dz_Error_.clear();
+    //Track_qoverp_Error_.clear();
+    //Track_lambda_Error_.clear();
+    //Track_phi_Error_.clear();
+    //Track_dsz_.clear();
+    //Track_dsz_Error_.clear();
+    //Track_qoverp_lambda_cov_.clear();
+    //Track_qoverp_phi_cov_.clear();
+    //Track_qoverp_dxy_cov_.clear();
+    //Track_qoverp_dsz_cov_.clear();
+    //Track_lambda_phi_cov_.clear();
+    //Track_lambda_dxy_cov_.clear();
+    //Track_lambda_dsz_cov_.clear();
+    //Track_phi_dxy_cov_.clear();
+    //Track_phi_dsz_cov_.clear();
+    //Track_dxy_dsz_cov_.clear();
+    //Track_vtxInd_.clear();
+    //Track_vx_.clear();
+    //Track_vy_.clear();
+    //Track_vz_.clear();
     PrimaryVtx_x_.clear();
     PrimaryVtx_y_.clear();
     PrimaryVtx_z_.clear();
@@ -1090,8 +1108,7 @@ void ScoutingNanoAOD::clearVars(){
     DisplacedVtx_tracksSize_.clear();
     DisplacedVtx_chi2_.clear();
     DisplacedVtx_ndof_.clear();
-    DisplacedVtx_isValidVtx_.clear();
-    
+    DisplacedVtx_isValidVtx_.clear(); 
 }
 
 void ScoutingNanoAOD::beginJob() {

@@ -85,7 +85,7 @@ params.parseArguments()
 
 # Message Logger settings
 process.load("FWCore.MessageService.MessageLogger_cfi")
-process.MessageLogger.destinations = ["cout", "cerr"]
+#process.MessageLogger.destinations = ['cout', 'cerr']
 process.MessageLogger.cerr.FwkReport.reportEvery = 5
 
 # Set the process options -- Display summary at the end, enable unscheduled execution
@@ -96,11 +96,11 @@ process.options = cms.untracked.PSet(
 )
 
 # How many events to process
-process.maxEvents = cms.untracked.PSet(input=cms.untracked.int32(params.maxEvents))
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(params.maxEvents) )
 
 # Input EDM files
-process.source = cms.Source(
-    "PoolSource", fileNames=cms.untracked.vstring(params.inputFiles)
+process.source = cms.Source("PoolSource",
+	fileNames = cms.untracked.vstring(params.inputFiles)
 )
 
 # Load the standard set of configuration modules
@@ -123,8 +123,8 @@ else:
     process.GlobalTag.globaltag = params.GlobalTagData
 
 # Define the services needed for the treemaker
-process.TFileService = cms.Service(
-    "TFileService", fileName=cms.string(params.outputFile)
+process.TFileService = cms.Service("TFileService",
+    fileName = cms.string(params.outputFile)
 )
 
 # Tree for the generator weights
@@ -136,48 +136,42 @@ process.gentree = cms.EDAnalyzer("LHEWeightsTreeMaker",
 )
 """
 
-# from DarkPhotonAnalysis.DimuonAnalysis2018.TriggerPaths_cfi import getL1Conf
-L1Info = [
-    "L1_DoubleMu4p5er2p0_SQ_OS_Mass_Min7",
-    "L1_DoubleMu_12_5",
-    "L1_DoubleMu_15_7",
-    "L1_TripleMu_5_3_3",
-    "L1_TripleMu_5_5_3",
-    "L1_QuadMu0",
-    "L1_DoubleMu0er1p5_SQ_OS_dR_Max1p4",
-    "L1_DoubleMu4p5er2p0_SQ_OS_Mass7to18",
-    "L1_DoubleMu4_SQ_OS_dR_Max1p2",
-    "L1_SingleMu22",
-    "L1_DoubleMu0er1p4_SQ_OS_dR_Max1p4",
-    "L1_DoubleMu4p5_SQ_OS_dR_Max1p2",
-    "L1_DoubleMu4p5_SQ_OS",
-    "L1_DoubleMu0er1p5_SQ_dR_Max1p4",
-    "L1_DoubleMu0er2p0_SQ_dR_Max1p4",
-    "L1_DoubleMu0_SQ",
-]
-# Make tree
-process.events = cms.EDAnalyzer(
-    "ScoutingNanoAOD",
-    triggerresults=cms.InputTag("TriggerResults", "", params.trigProcess),
-    ReadPrescalesFromFile=cms.bool(False),
-    AlgInputTag=cms.InputTag("gtStage2Digis"),
-    l1tAlgBlkInputTag=cms.InputTag("gtStage2Digis"),
-    l1tExtBlkInputTag=cms.InputTag("gtStage2Digis"),
-    l1Seeds=cms.vstring(L1Info),
-    # vertices         = cms.InputTag("hltScoutingMuonPacker","displacedVtx"),
-    muons=cms.InputTag("hltScoutingMuonPacker"),
-    electrons=cms.InputTag("hltScoutingEgammaPacker"),
-    photons=cms.InputTag("hltScoutingEgammaPacker"),
-    pfcands=cms.InputTag("hltScoutingPFPacker"),
-    pfjets=cms.InputTag("hltScoutingPFPacker"),
-    tracks=cms.InputTag("hltScoutingTrackPacker"),
-    primaryVertices=cms.InputTag("hltScoutingPrimaryVertexPacker", "primaryVtx"),
-    displacedVertices=cms.InputTag("hltScoutingMuonPacker", "displacedVtx"),
-    pfMet=cms.InputTag("hltScoutingPFPacker", "pfMetPt"),
-    pfMetPhi=cms.InputTag("hltScoutingPFPacker", "pfMetPhi"),
-    rho=cms.InputTag("hltScoutingPFPacker", "rho"),
-    # pileupinfo       = cms.InputTag("addPileupInfo"),
-    # geneventinfo     = cms.InputTag("generator"),
-)
-process.p = cms.Path(process.events)
+#from DarkPhotonAnalysis.DimuonAnalysis2018.TriggerPaths_cfi import getL1Conf
+#L1Info = ['L1_DoubleMu_12_5', 'L1_DoubleMu_15_7', 'L1_HTT200er', 'L1_HTT255er', 'L1_HTT280er', 'L1_HTT320er', 'L1_HTT360er', 'L1_ETT2000', 'L1_HTT400er', 'L1_HTT450er', 'L1_SingleJet180', 'L1_SingleJet200', 'L1_DoubleJet30er2p5_Mass_Min300_dEta_Max1p5', 'L1_DoubleJet30er2p5_Mass_Min330_dEta_Max1p5', 'L1_DoubleJet30er2p5_Mass_Min360_dEta_Max1p5', 'L1_DoubleMu4p5er2p0_SQ_OS_Mass_Min7', 'L1_DoubleMu4_SQ_OS_dR_Max1p2', 'L1_SingleEG36er2p5', 'L1_SingleLooseIsoEG28er2p1', 'L1_SingleEG8er2p5', 'L1_SingleEG10er2p5', 'L1_SingleEG15er2p5', 'L1_SingleEG26er2p5', 'L1_SingleEG28_FWD2p5', 'L1_DoubleEG4_er1p2_dR_Max0p9', 'L1_DoubleEG4p5_er1p2_dR_Max0p9', 'L1_DoubleEG5_er1p2_dR_Max0p9', 'L1_DoubleEG5p5_er1p2_dR_Max0p8', 'L1_DoubleEG7_er1p2_dR_Max0p8', 'L1_DoubleEG7p5_er1p2_dR_Max0p7', 'L1_DoubleEG_15_10_er2p5', 'L1_DoubleEG_20_10_er2p5', 'L1_DoubleEG_22_10_er2p5', 'L1_DoubleEG_25_12_er2p5', 'L1_DoubleEG_25_14_er2p5', 'L1_DoubleEG_27_14_er2p5', 'L1_DoubleEG_LooseIso22_12_er2p5', 'L1_DoubleEG_LooseIso25_12_er2p5', 'L1_TripleEG_18_17_8_er2p5', 'L1_TripleEG_18_18_12_er2p5', 'L1_TripleEG16er2p5', 'L1_DoubleEG8er2p5_HTT300er']
+L1Info = ['L1_DoubleMu_12_5','L1_DoubleMu_15_7','L1_HTT200er','L1_HTT255er','L1_HTT280er','L1_HTT320er','L1_HTT360er','L1_ETT2000','L1_HTT400er','L1_HTT450er','L1_SingleJet180','L1_SingleJet200','L1_DoubleJet30er2p5_Mass_Min300_dEta_Max1p5','L1_DoubleJet30er2p5_Mass_Min330_dEta_Max1p5','L1_DoubleJet30er2p5_Mass_Min360_dEta_Max1p5','L1_DoubleMu4p5er2p0_SQ_OS_Mass_Min7','L1_DoubleMu4_SQ_OS_dR_Max1p2','L1_SingleEG36er2p5','L1_SingleLooseIsoEG28er2p1']
 
+# Make tree
+process.mmtree = cms.EDAnalyzer('ScoutingNanoAOD',
+
+    	triggerresults   = cms.InputTag("TriggerResults", "", params.trigProcess),
+        doL1 = cms.bool(True),
+        triggerConfiguration = cms.PSet(
+    		hltResults            = cms.InputTag('TriggerResults','', params.trigProcess),
+    		l1tResults            = cms.InputTag(''),
+    		daqPartitions         = cms.uint32(1),
+    		l1tIgnoreMaskAndPrescale = cms.bool(False),
+    		throw                 = cms.bool(False)
+  	),
+	ReadPrescalesFromFile = cms.bool( False ),
+        AlgInputTag       = cms.InputTag("gtStage2Digis"),
+        l1tAlgBlkInputTag = cms.InputTag("gtStage2Digis"),
+        l1tExtBlkInputTag = cms.InputTag("gtStage2Digis"),
+        l1Seeds           = cms.vstring(L1Info),
+	#vertices         = cms.InputTag("hltScoutingMuonPacker","displacedVtx"),
+	muons            = cms.InputTag("hltScoutingMuonPacker"),
+	electrons        = cms.InputTag("hltScoutingEgammaPacker"),
+        photons          = cms.InputTag("hltScoutingEgammaPacker"),
+	pfcands          = cms.InputTag("hltScoutingPFPacker"),
+	pfjets           = cms.InputTag("hltScoutingPFPacker"),
+        tracks           = cms.InputTag("hltScoutingTrackPacker"),
+        primaryVertices  = cms.InputTag("hltScoutingPrimaryVertexPacker","primaryVtx"),
+        displacedVertices  = cms.InputTag("hltScoutingMuonPacker","displacedVtx"),
+        pfMet            = cms.InputTag("hltScoutingPFPacker","pfMetPt"),
+        pfMetPhi         = cms.InputTag("hltScoutingPFPacker","pfMetPhi"),
+        rho         = cms.InputTag("hltScoutingPFPacker","rho"),
+    	#pileupinfo       = cms.InputTag("addPileupInfo"),
+    	#geneventinfo     = cms.InputTag("generator"),
+
+)
+process.p = cms.Path(process.gtStage2Digis*process.mmtree)
+>>>>>>> origin/13p6TeV2022C
