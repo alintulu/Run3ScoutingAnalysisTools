@@ -174,4 +174,3 @@ process.mmtree = cms.EDAnalyzer('ScoutingNanoAOD',
 
 )
 process.p = cms.Path(process.gtStage2Digis*process.mmtree)
->>>>>>> origin/13p6TeV2022C
