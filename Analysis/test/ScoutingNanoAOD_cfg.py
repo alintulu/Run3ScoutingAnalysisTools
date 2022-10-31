@@ -1,4 +1,5 @@
 import FWCore.ParameterSet.Config as cms
+from RecoJets.Configuration.RecoPFJets_cff import ak4PFJetsCHS
 
 # Set parameters externally
 from FWCore.ParameterSet.VarParsing import VarParsing
@@ -18,7 +19,6 @@ process.MessageLogger.cerr.FwkReport.reportEvery = 5
 process.options = cms.untracked.PSet(
     allowUnscheduled = cms.untracked.bool(True),
     wantSummary      = cms.untracked.bool(True),
-    #SkipEvent = cms.untracked.vstring('ProductNotFound')
 )
 
 # How many events to process
@@ -35,24 +35,59 @@ process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 process.load('Configuration.StandardSequences.GeometryRecoDB_cff')
 process.load('Configuration.StandardSequences.MagneticField_cff')
 
-# Define the services needed for the treemaker
-process.TFileService = cms.Service("TFileService",
-    fileName = cms.string(params.outputFile)
+#process.TFileService = cms.Service("TFileService",
+#    fileName = cms.string(params.outputFile)
+#)
+#
+#process.hltFixedGridRhoFastjetAll = cms.EDProducer("FixedGridRhoProducerFastjet",
+#    gridSpacing = cms.double(0.55),
+#    maxRapidity = cms.double(5.0),
+#    pfCandidatesTag = cms.InputTag("hltParticleFlow")
+#)
+#
+#process.mmtree = cms.EDAnalyzer('ScoutingNanoAOD',
+#        scoutpart = cms.InputTag("hltScoutingPFPacker"),
+#        ak8genjet = cms.InputTag('ak8GenJets'),
+#        ak8hltjet = cms.InputTag("hltAK8PFJets"),
+#        ak8hltcorrjet = cms.InputTag("hltAK8PFJetsCorrected"),
+#        scoutrho = cms.InputTag("hltScoutingPFPacker","rho"),
+#        hltrho = cms.InputTag("hltFixedGridRhoFastjetAll"),
+#)
+#
+#process.recoJets = cms.EDProducer(
+#  "Run3ScoutingToRecoJetProducer",
+#  scoutingjet=cms.InputTag("hltScoutingPFPacker"),
+#  scoutingparticle=cms.InputTag("hltScoutingPFPacker"),
+#)
+#
+#process.pfcands = cms.EDProducer(
+#  "Run3ScoutingToPFCandidateProducer",
+#  scoutingparticle=cms.InputTag("hltScoutingPFPacker"),
+#)
+
+process.packs = cms.EDProducer(
+  "Run3ScoutingToPackedCandidateProducer",
+  scoutingparticle=cms.InputTag("hltScoutingPFPacker"),
+  scoutingvertex=cms.InputTag("hltScoutingPrimaryVertexPacker", "primaryVtx")
 )
 
-process.hltFixedGridRhoFastjetAll = cms.EDProducer("FixedGridRhoProducerFastjet",
-    gridSpacing = cms.double(0.55),
-    maxRapidity = cms.double(5.0),
-    pfCandidatesTag = cms.InputTag("hltParticleFlow")
+process.chs = cms.EDFilter(
+  'CandPtrSelector',
+  src = cms.InputTag('packs'),
+  cut = cms.string('fromPV')
 )
 
-# Make tree
-process.mmtree = cms.EDAnalyzer('ScoutingNanoAOD',
-        scoutpart = cms.InputTag("hltScoutingPFPacker"),
-        ak8genjet = cms.InputTag('ak8GenJets'),
-        ak8hltjet = cms.InputTag("hltAK8PFJets"),
-        ak8hltcorrjet = cms.InputTag("hltAK8PFJetsCorrected"),
-        scoutrho = cms.InputTag("hltScoutingPFPacker","rho"),
-        hltrho = cms.InputTag("hltFixedGridRhoFastjetAll"),
+process.ak4 = ak4PFJetsCHS.clone( 
+   src = cms.InputTag('chs'),
+   doAreaFastjet = True,
+   rParam = 0.4,
+   jetAlgorithm = 'AntiKt'
 )
-process.p = cms.Path(process.hltFixedGridRhoFastjetAll*process.mmtree)
+
+process.p = cms.Path(process.packs*process.chs*process.ak4)
+
+process.outputFile = cms.OutputModule('PoolOutputModule',
+  fileName = cms.untracked.string('output.root'),
+ )
+
+process.endPath = cms.EndPath(process.outputFile)
