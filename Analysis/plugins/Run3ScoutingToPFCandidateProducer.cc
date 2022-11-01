@@ -33,11 +33,12 @@ public:
 
   static void fillDescriptions(edm::ConfigurationDescriptions &descriptions);
   void produce(edm::StreamID sid, edm::Event & iEvent, edm::EventSetup const & setup) const final;
+  void print(Run3ScoutingParticle s, reco::PFCandidate r) const;
 
 private:
-
   const edm::EDGetTokenT<std::vector<Run3ScoutingParticle>> input_scoutingparticle_token_;
-  const edm::ESGetToken<HepPDT::ParticleDataTable, edm::DefaultRecord> particleTableToken;
+  const edm::ESGetToken<HepPDT::ParticleDataTable, edm::DefaultRecord> particletable_token_;
+  bool debug_;
 };
 
 //
@@ -45,18 +46,32 @@ private:
 //
 Run3ScoutingToPFCandidateProducer::Run3ScoutingToPFCandidateProducer(const edm::ParameterSet &iConfig)
     : input_scoutingparticle_token_(consumes(iConfig.getParameter<edm::InputTag>("scoutingparticle"))),
-      particleTableToken       (esConsumes<HepPDT::ParticleDataTable, edm::DefaultRecord>()) {
+      particletable_token_(esConsumes<HepPDT::ParticleDataTable, edm::DefaultRecord>()),
+      debug_(iConfig.existsAs<bool>("debug") ? iConfig.getParameter<bool>("debug") : false) {
   //register products
   produces<std::vector<reco::PFCandidate>>();
 }
 
 Run3ScoutingToPFCandidateProducer::~Run3ScoutingToPFCandidateProducer() = default;
 
+void Run3ScoutingToPFCandidateProducer::print(Run3ScoutingParticle s, reco::PFCandidate r) const {
+
+  std::cout << "pdgId" << std::endl; 
+  std::cout << s.pdgId() << " " << r.pdgId() << std::endl;  
+  std::cout << "pt" << std::endl; 
+  std::cout << s.pt() << " " << r.pt() << std::endl;  
+  std::cout << "phi" << std::endl; 
+  std::cout << s.phi() << " " << r.phi() << std::endl;  
+  std::cout << "eta" << std::endl; 
+  std::cout << s.eta() << " " << r.eta() << std::endl;  
+
+}
+
 // ------------ method called to produce the data  ------------
 void Run3ScoutingToPFCandidateProducer::produce(edm::StreamID sid, edm::Event & iEvent, edm::EventSetup const & setup) const {
   using namespace edm;
 
-  auto pdt = setup.getHandle(particleTableToken);
+  auto pdt = setup.getHandle(particletable_token_);
   const HepPDT::ParticleDataTable* pdTable = pdt.product();
 
   Handle<std::vector<Run3ScoutingParticle>> scoutingparticleHandle;
@@ -84,6 +99,8 @@ void Run3ScoutingToPFCandidateProducer::produce(edm::StreamID sid, edm::Event & 
       reco::Particle::LorentzVector p4(px, py, pz, energy); 
  
       pfcand = reco::PFCandidate(q, p4, pfcand.translatePdgIdToType(scoutingparticle.pdgId()));
+
+      if (debug_) print(scoutingparticle, pfcand);
   }
 
   //put output

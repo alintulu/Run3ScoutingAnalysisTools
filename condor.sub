@@ -1,8 +1,0 @@
-executable = $(filename)
-arguments = $Fp(filename) $(ClusterID) $(ProcId)
-output = $Fp(filename)hlt.stdout
-error = $Fp(filename)hlt.stderr
-log = $Fp(filename)hlt.log
-+JobFlavour = "longlunch"
-+AccountingGroup = "group_u_CMST3.all"
-queue filename matching (/afs/cern.ch/user/a/adlintul/2021/scouting/particlenet/huilin/CMSSW_11_2_1_Patatrack/src/Run3ScoutingAnalysisTools/Jobs_old/BulkGraviton/0001/Job_*/*.sh)

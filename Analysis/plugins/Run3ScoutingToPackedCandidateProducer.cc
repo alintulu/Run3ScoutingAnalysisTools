@@ -84,7 +84,7 @@ void Run3ScoutingToPackedCandidateProducer::produce(edm::StreamID sid, edm::Even
       Run3ScoutingVertex vertex = (*scoutingvertexHandle)[ivertex];
       pat::PackedCandidate::Point v(vertex.x(), vertex.y(), vertex.z());
  
-      pack = pat::PackedCandidate(p4, v, scoutingparticle.pt(), scoutingparticle.eta(), scoutingparticle.phi(), scoutingparticle.pdgId(), reco::VertexRefProd(), reco::VertexRef().key());
+      pack = pat::PackedCandidate(p4, v, scoutingparticle.trk_pt(), scoutingparticle.trk_eta(), scoutingparticle.trk_phi(), scoutingparticle.pdgId(), reco::VertexRefProd(), reco::VertexRef().key());
   }
 
   //put output

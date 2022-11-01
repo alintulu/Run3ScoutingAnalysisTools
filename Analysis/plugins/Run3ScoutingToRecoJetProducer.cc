@@ -38,6 +38,7 @@ public:
 //
 public:
   void produce(edm::Event& iEvent, const edm::EventSetup& iSetup) override;
+  void print(Run3ScoutingPFJet s, reco::PFJet r) const;
 
 //
 //  member data
@@ -48,6 +49,7 @@ protected:
 private:
   const edm::EDGetTokenT<std::vector<Run3ScoutingPFJet>> input_scoutingjet_token_;
   edm::EDGetTokenT<reco::CandidateView> input_candidateview_token_;
+  bool debug_;
 };
 
 //
@@ -55,12 +57,25 @@ private:
 //
 Run3ScoutingToRecoJetProducer::Run3ScoutingToRecoJetProducer(const edm::ParameterSet &iConfig)
     : input_scoutingjet_token_(consumes(iConfig.getParameter<edm::InputTag>("scoutingjet"))),
-      input_candidateview_token_(consumes(iConfig.getParameter<edm::InputTag>("scoutingparticle"))) {
+      input_candidateview_token_(consumes(iConfig.getParameter<edm::InputTag>("scoutingparticle"))),
+      debug_(iConfig.existsAs<bool>("debug") ? iConfig.getParameter<bool>("debug") : false) {
   //register products
   produces<std::vector<reco::PFJet>>();
 }
 
 Run3ScoutingToRecoJetProducer::~Run3ScoutingToRecoJetProducer() = default;
+
+void Run3ScoutingToRecoJetProducer::print(Run3ScoutingPFJet s, reco::PFJet r) const {
+
+  std::cout << "pt: " << s.pt() << " " << r.pt() << std::endl;
+  std::cout << "phi: " << s.phi() << " " << r.phi() << std::endl;
+  std::cout << "eta: " << s.eta() << " " << r.eta() << std::endl;
+  std::cout << "che: " << s.chargedHadronEnergy() << " " << r.chargedHadronEnergy() << std::endl;
+  std::cout << "nhe: " << s.neutralHadronEnergy() << " " << r.neutralHadronEnergy() << std::endl;
+  std::cout << "mue: " << s.muonEnergy() << " " << r.muonEnergy() << std::endl;
+  std::cout << "phoe: " << s.photonEnergy() << " " << r.photonEnergy() << std::endl;
+
+}
 
 // ------------ method called to produce the data  ------------
 void Run3ScoutingToRecoJetProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
@@ -91,10 +106,31 @@ void Run3ScoutingToRecoJetProducer::produce(edm::Event& iEvent, const edm::Event
       float energy = scoutingjet.chargedHadronEnergy() + scoutingjet.neutralHadronEnergy() + scoutingjet.photonEnergy() + scoutingjet.electronEnergy() + scoutingjet.muonEnergy();
 
       reco::PFJet::Specific specific;
+      //TO DO
+      //specific.mJetArea = scoutingjet.jetArea();
+      //specific.mMass = scoutingjet.m();
+      specific.mChargedHadronEnergy = scoutingjet.chargedHadronEnergy();
+      specific.mNeutralHadronEnergy = scoutingjet.neutralHadronEnergy();
+      specific.mPhotonEnergy = scoutingjet.photonEnergy();
+      specific.mElectronEnergy = scoutingjet.electronEnergy();
+      specific.mMuonEnergy = scoutingjet.muonEnergy();
+      specific.mHFHadronEnergy = scoutingjet.HFHadronEnergy();
+      specific.mHFEMEnergy = scoutingjet.HFEMEnergy();
+      specific.mHOEnergy = scoutingjet.HOEnergy();
+      specific.mChargedHadronMultiplicity = scoutingjet.chargedHadronMultiplicity();
+      specific.mNeutralHadronMultiplicity = scoutingjet.neutralHadronMultiplicity();
+      specific.mPhotonMultiplicity = scoutingjet.photonMultiplicity();
+      specific.mElectronMultiplicity = scoutingjet.electronMultiplicity();
+      specific.mMuonMultiplicity = scoutingjet.muonMultiplicity();
+      specific.mHFHadronMultiplicity = scoutingjet.HFHadronMultiplicity();
+      specific.mHFEMMultiplicity = scoutingjet.HFEMMultiplicity();
+
       reco::Particle::LorentzVector p4(px, py, pz, energy);
       reco::Jet::Point vertex(0, 0, 0);
    
       pfjet = reco::PFJet(p4, vertex, specific, pfcands_);
+
+      if (debug_) print(scoutingjet, pfjet);
   }
 
   //put output

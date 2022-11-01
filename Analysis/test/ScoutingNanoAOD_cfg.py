@@ -26,7 +26,8 @@ process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(params.maxEv
 
 # Input EDM files
 process.source = cms.Source("PoolSource",
-	fileNames = cms.untracked.vstring(params.inputFiles)
+	fileNames = cms.untracked.vstring(params.inputFiles),
+        inputCommands=cms.untracked.vstring(['drop *', 'keep *_slimmedGenJets_*_*'])
 )
 
 # Load the standard set of configuration modules
@@ -35,10 +36,10 @@ process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 process.load('Configuration.StandardSequences.GeometryRecoDB_cff')
 process.load('Configuration.StandardSequences.MagneticField_cff')
 
-#process.TFileService = cms.Service("TFileService",
-#    fileName = cms.string(params.outputFile)
-#)
-#
+process.TFileService = cms.Service("TFileService",
+    fileName = cms.string(params.outputFile)
+)
+
 #process.hltFixedGridRhoFastjetAll = cms.EDProducer("FixedGridRhoProducerFastjet",
 #    gridSpacing = cms.double(0.55),
 #    maxRapidity = cms.double(5.0),
@@ -64,30 +65,84 @@ process.load('Configuration.StandardSequences.MagneticField_cff')
 #  "Run3ScoutingToPFCandidateProducer",
 #  scoutingparticle=cms.InputTag("hltScoutingPFPacker"),
 #)
+#
+#process.vertexs = cms.EDProducer(
+#  "Run3ScoutingToVertexReco",
+#  scoutingvertex=cms.InputTag("hltScoutingPrimaryVertexPacker", "primaryVtx")
+#)
+#
+#process.packs = cms.EDProducer(
+#  "Run3ScoutingToPackedCandidateProducer",
+#  scoutingparticle=cms.InputTag("hltScoutingPFPacker"),
+#  scoutingvertex=cms.InputTag("hltScoutingPrimaryVertexPacker", "primaryVtx")
+#)
+#
+#process.pv = cms.EDFilter(
+#  'CandPtrSelector',
+#  src = cms.InputTag('packs'),
+#  cut = cms.string('fromPV')
+#)
+#
+#process.chs = ak4PFJetsCHS.clone( 
+#   src = cms.InputTag('pv'),
+#   doAreaFastjet = True,
+#   rParam = 0.4,
+#   jetAlgorithm = 'AntiKt'
+#)
+#
+#process.p = cms.Path(process.packs*process.pv*process.chs)
 
-process.packs = cms.EDProducer(
-  "Run3ScoutingToPackedCandidateProducer",
-  scoutingparticle=cms.InputTag("hltScoutingPFPacker"),
-  scoutingvertex=cms.InputTag("hltScoutingPrimaryVertexPacker", "primaryVtx")
+process.load('PhysicsTools.NanoAOD.nanogen_cff')
+process.load("PhysicsTools.NanoAOD.NanoAODEDMEventContent_cff")
+from PhysicsTools.NanoAOD.taus_cff import *
+from PhysicsTools.NanoAOD.jetMC_cff import *
+from PhysicsTools.NanoAOD.globals_cff import genTable,genFilterTable
+from PhysicsTools.NanoAOD.met_cff import metMCTable
+from PhysicsTools.NanoAOD.genparticles_cff import *
+from PhysicsTools.NanoAOD.particlelevel_cff import *
+from PhysicsTools.NanoAOD.genWeightsTable_cfi import *
+from PhysicsTools.NanoAOD.genVertex_cff import *
+from PhysicsTools.NanoAOD.common_cff import Var,CandVars
+
+nanoMetadata = cms.EDProducer("UniqueStringProducer",
+    strings = cms.PSet(
+        tag = cms.string("untagged"),
+    )
 )
 
-process.chs = cms.EDFilter(
-  'CandPtrSelector',
-  src = cms.InputTag('packs'),
-  cut = cms.string('fromPV')
+nanogenSequence = cms.Sequence(
+    #nanoMetadata+
+    #cms.Sequence(particleLevelTask)+
+    genJetTable+
+    patJetPartonsNano+
+    genJetFlavourAssociation+
+    genJetFlavourTable+
+    genJetAK8Table+
+    genJetAK8FlavourAssociation+
+    genJetAK8FlavourTable
+    #cms.Sequence(genTauTask)+
+    #genTable+
+    #genFilterTable+
+    #cms.Sequence(genParticleTablesTask)+
+    #cms.Sequence(genVertexTablesTask)+
+    #tautagger+
+    #rivetProducerHTXS+
+    #cms.Sequence(particleLevelTablesTask)+
+    #metMCTable+
+    #genWeightsTable
 )
 
-process.ak4 = ak4PFJetsCHS.clone( 
-   src = cms.InputTag('chs'),
-   doAreaFastjet = True,
-   rParam = 0.4,
-   jetAlgorithm = 'AntiKt'
+cms.Path(process.nanogenSequence)
+
+process.out = cms.OutputModule("NanoAODOutputModule",
+    fileName=cms.untracked.string("nano.root"),
+    outputCommands = process.NanoAODEDMEventContent.outputCommands,
 )
 
-process.p = cms.Path(process.packs*process.chs*process.ak4)
+process.end = cms.EndPath(process.out)
 
-process.outputFile = cms.OutputModule('PoolOutputModule',
-  fileName = cms.untracked.string('output.root'),
- )
-
-process.endPath = cms.EndPath(process.outputFile)
+#process.outputFile = cms.OutputModule('PoolOutputModule',
+#  fileName = cms.untracked.string('output.root'),
+# )
+#
+#process.endPath = cms.EndPath(process.outputFile)
