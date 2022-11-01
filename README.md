@@ -17,10 +17,16 @@ cmsenv
 git clone git@github.com:alintulu/Run3ScoutingAnalysisTools.git -b nanoaod
 scram b -j 8
 ```
-4. Run locally over one file
+4. Create a NanoAOD file that also contains some scouting collections
 
 ```
-cmsRun Run3ScoutingAnalysisTools/Analysis/test/ScoutingNanoAOD_cfg.py inputFiles=/store/data/Run2022F/ScoutingPFRun3/RAW/v1/000/360/919/00000/c650b47a-4964-4fc2-9e6d-e7e3073f51f9.root maxEvents=10
+source nano.sh
+```
+
+5. Create a NanoAODGEN file that also contains some scouting collections
+
+```
+source nanogen.sh
 ```
 
 Done!

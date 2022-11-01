@@ -14,8 +14,8 @@ def customise(process):
 
    process.schedule.associate(process.particleTask)
 
-   process.load('PhysicsTools.NanoAOD.triggerObjects_cff')
-   process.schedule.associate(process.triggerObjectTablesTask)
+   #process.load('PhysicsTools.NanoAOD.triggerObjects_cff')
+   #process.schedule.associate(process.triggerObjectTablesTask)
 
    return process
 
