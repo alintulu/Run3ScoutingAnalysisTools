@@ -34,7 +34,7 @@ def addAK4Jets(process):
        jets = cms.InputTag("ak4Jets"),
        genjets = cms.InputTag("slimmedGenJets"),
        nameTable = cms.string("ScoutingJet"),
-   ) 
+   )
 
    process.ak4JetTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
        src = cms.InputTag("ak4Jets"),
@@ -65,6 +65,14 @@ def addAK8Jets(process):
 
    process.ak8Jets = ak8PFJets.clone(
       src = ("pfcands"),
+      useSoftDrop = cms.bool(True),
+      zcut = cms.double(0.1),
+      beta = cms.double(0.0),
+      R0   = cms.double(0.8),
+      useExplicitGhosts = cms.bool(True),
+      writeCompound = cms.bool(True),
+      jetCollInstanceName=cms.string("SubJets"),
+      jetPtMin = 170.0
    )
 
    process.ak8MatchGen = cms.EDProducer("MatchJetToGenJetProducer",
@@ -74,14 +82,14 @@ def addAK8Jets(process):
    ) 
  
    process.ak8JetTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
-       src = cms.InputTag("ak8Jets"),
+       src = cms.InputTag("ak8Jets", "SubJets"),
        name = cms.string("ScoutingFatJet"),
        cut = cms.string(""),
        doc = cms.string("ScoutingFatJet"),
        singleton = cms.bool(False),
        extension = cms.bool(False), # this is the main table
        variables = cms.PSet(
-          P3Vars,
+          P4Vars,
        ),
    )
 
