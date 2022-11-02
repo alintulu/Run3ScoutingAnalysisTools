@@ -13,5 +13,5 @@ cmsDriver.py \
     --no_exec \
     --mc \
     --customise Run3ScoutingAnalysisTools/Analysis/Run3Scouting_cff.customise \
-    --customise_commands "process.NANOAODGENoutput.outputCommands.extend(['drop edmTriggerResults_*_*_HLT'])" \
+    --customise_commands "process.NANOAODGENoutput.outputCommands.extend(['keep edmTriggerResults_*_*_DQM'])" \
     -n 1

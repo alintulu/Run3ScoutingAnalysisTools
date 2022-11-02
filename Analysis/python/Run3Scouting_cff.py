@@ -5,12 +5,18 @@ def customise(process):
 
    scoutingToReco(process)
    addParticles(process)
-   addJets(process)
+   addAK4Jets(process)
+   addAK8Jets(process)
 
    process.particleTask = cms.Task(process.pfcands,
-                                   process.recojets,
+                                   process.ak4Jets,
                                    process.particleTable,
-                                   process.jetTable)
+                                   process.ak4MatchGen,
+                                   process.ak4JetTable,
+                                   process.ak8Jets,
+                                   process.ak8MatchGen,
+                                   process.ak8JetTable,
+  )
 
    process.schedule.associate(process.particleTask)
 

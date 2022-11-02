@@ -8,7 +8,7 @@ def scoutingToReco(process):
      scoutingparticle=cms.InputTag("hltScoutingPFPacker"),
    )
 
-   process.recojets = cms.EDProducer(
+   process.ak4Jets = cms.EDProducer(
      "Run3ScoutingToRecoJetProducer",
      scoutingjet=cms.InputTag("hltScoutingPFPacker"),
      scoutingparticle=cms.InputTag("pfcands"),
@@ -18,9 +18,9 @@ def addParticles(process):
 
    process.particleTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
        src = cms.InputTag("pfcands"),
-       name = cms.string("Run3ScoutingParticle"),
+       name = cms.string("ScoutingParticle"),
        cut = cms.string(""),
-       doc = cms.string("Run3ScoutingParticle"),
+       doc = cms.string("ScoutingParticle"),
        singleton = cms.bool(False),
        extension = cms.bool(False), # this is the main table
        variables = cms.PSet(
@@ -28,13 +28,19 @@ def addParticles(process):
        ),
    )
 
-def addJets(process):
+def addAK4Jets(process):
 
-   process.jetTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
-       src = cms.InputTag("recojets"),
-       name = cms.string("Run3ScoutingJet"),
+   process.ak4MatchGen = cms.EDProducer("MatchJetToGenJetProducer",
+       jets = cms.InputTag("ak4Jets"),
+       genjets = cms.InputTag("slimmedGenJets"),
+       nameTable = cms.string("ScoutingJet"),
+   ) 
+
+   process.ak4JetTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
+       src = cms.InputTag("ak4Jets"),
+       name = cms.string("ScoutingJet"),
        cut = cms.string(""),
-       doc = cms.string("Run3ScoutingJet"),
+       doc = cms.string("ScoutingJet"),
        singleton = cms.bool(False),
        extension = cms.bool(False), # this is the main table
        variables = cms.PSet(
@@ -52,3 +58,30 @@ def addJets(process):
           nConstituents = Var("numberOfDaughters()", "uint8", doc="Number of particles in the jet")
        ),
    )
+
+def addAK8Jets(process):
+
+   from RecoJets.JetProducers.ak8PFJets_cfi import ak8PFJets
+
+   process.ak8Jets = ak8PFJets.clone(
+      src = ("pfcands"),
+   )
+
+   process.ak8MatchGen = cms.EDProducer("MatchJetToGenJetProducer",
+       jets = cms.InputTag("ak8Jets"),
+       genjets = cms.InputTag("slimmedAK8GenJets"),
+       nameTable = cms.string("ScoutingFatJet"),
+   ) 
+ 
+   process.ak8JetTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
+       src = cms.InputTag("ak8Jets"),
+       name = cms.string("ScoutingFatJet"),
+       cut = cms.string(""),
+       doc = cms.string("ScoutingFatJet"),
+       singleton = cms.bool(False),
+       extension = cms.bool(False), # this is the main table
+       variables = cms.PSet(
+          P3Vars,
+       ),
+   )
+
