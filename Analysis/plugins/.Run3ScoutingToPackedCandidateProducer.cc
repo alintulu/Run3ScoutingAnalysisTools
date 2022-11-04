@@ -20,6 +20,7 @@
 #include "DataFormats/Scouting/interface/Run3ScoutingVertex.h"
 #include "DataFormats/Candidate/interface/LeafCandidate.h"
 #include "DataFormats/PatCandidates/interface/PackedCandidate.h"
+#include "DataFormats/Common/interface/ValueMap.h"
 
 #include "DataFormats/Math/interface/deltaR.h"
 
@@ -50,7 +51,8 @@ Run3ScoutingToPackedCandidateProducer::Run3ScoutingToPackedCandidateProducer(con
       input_scoutingvertex_input_(consumes(iConfig.getParameter<edm::InputTag>("scoutingvertex"))),
       particleTableToken       (esConsumes<HepPDT::ParticleDataTable, edm::DefaultRecord>()) {
   //register products
-  produces<std::vector<pat::PackedCandidate>>();
+  //produces<std::vector<pat::PackedCandidate>>();
+  produces<edm::ValueMap<float>>("normchi2");
 }
 
 Run3ScoutingToPackedCandidateProducer::~Run3ScoutingToPackedCandidateProducer() = default;
@@ -62,12 +64,10 @@ void Run3ScoutingToPackedCandidateProducer::produce(edm::StreamID sid, edm::Even
   auto pdt = setup.getHandle(particleTableToken);
   const HepPDT::ParticleDataTable* pdTable = pdt.product();
 
-  Handle<std::vector<Run3ScoutingParticle>> scoutingparticleHandle;
-  iEvent.getByToken(input_scoutingparticle_token_, scoutingparticleHandle);
+  auto scoutingparticleHandle = iEvent.getHandle(input_scoutingparticle_token_);
+  auto scoutingvertexHandle = iEvent.getHandle(input_scoutingvertex_input_);
 
-  Handle<std::vector<Run3ScoutingVertex>> scoutingvertexHandle;
-  iEvent.getByToken(input_scoutingvertex_input_, scoutingvertexHandle);
-
+  std::vector<float> normchi2(scoutingparticleHandle->size(), -1);
   auto packs = std::make_unique<std::vector<pat::PackedCandidate>>(scoutingparticleHandle->size());
   for (unsigned int icand = 0; icand < scoutingparticleHandle->size(); ++icand) {
 
@@ -85,10 +85,17 @@ void Run3ScoutingToPackedCandidateProducer::produce(edm::StreamID sid, edm::Even
       pat::PackedCandidate::Point v(vertex.x(), vertex.y(), vertex.z());
  
       pack = pat::PackedCandidate(p4, v, scoutingparticle.trk_pt(), scoutingparticle.trk_eta(), scoutingparticle.trk_phi(), scoutingparticle.pdgId(), reco::VertexRefProd(), reco::VertexRef().key());
+
+      normchi2[icand] = scoutingparticle.normchi2();
   }
 
   //put output
-  iEvent.put(std::move(packs));
+  //iEvent.put(std::move(packs));
+  std::unique_ptr<edm::ValueMap<float>> normchi2V(new edm::ValueMap<float>());
+  edm::ValueMap<float>::Filler filler_normchi2(*normchi2V);
+  filler_normchi2.insert(packs, normchi2.begin(), normchi2.end());
+  filler_normchi2.fill();
+  iEvent.put(std::move(normchi2V), "normchi2");
 }
 
 // ------------ method fills 'descriptions' with the allowed parameters for the module  ------------

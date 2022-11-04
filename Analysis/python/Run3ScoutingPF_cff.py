@@ -30,12 +30,6 @@ def addParticles(process):
 
 def addAK4Jets(process):
 
-   process.ak4MatchGen = cms.EDProducer("MatchJetToGenJetProducer",
-       jets = cms.InputTag("ak4Jets"),
-       genjets = cms.InputTag("slimmedGenJets"),
-       nameTable = cms.string("ScoutingJet"),
-   )
-
    process.ak4JetTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
        src = cms.InputTag("ak4Jets"),
        name = cms.string("ScoutingJet"),
@@ -59,6 +53,12 @@ def addAK4Jets(process):
        ),
    )
 
+   process.ak4MatchGenTable = cms.EDProducer("MatchJetToGenJetTableProducer",
+       jets = cms.InputTag("ak4Jets"),
+       genjets = cms.InputTag("slimmedGenJets"),
+       nameTable = cms.string("ScoutingJet"),
+   )
+
 def addAK8Jets(process):
 
    from RecoJets.JetProducers.ak8PFJets_cfi import ak8PFJets
@@ -74,12 +74,6 @@ def addAK8Jets(process):
       jetCollInstanceName=cms.string("SubJets"),
       jetPtMin = 170.0
    )
-
-   process.ak8MatchGen = cms.EDProducer("MatchJetToGenJetProducer",
-       jets = cms.InputTag("ak8Jets"),
-       genjets = cms.InputTag("slimmedAK8GenJets"),
-       nameTable = cms.string("ScoutingFatJet"),
-   ) 
  
    process.ak8JetTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
        src = cms.InputTag("ak8Jets", "SubJets"),
@@ -93,3 +87,8 @@ def addAK8Jets(process):
        ),
    )
 
+   process.ak8MatchGenTable = cms.EDProducer("MatchJetToGenJetTableProducer",
+       jets = cms.InputTag("ak8Jets"),
+       genjets = cms.InputTag("slimmedAK8GenJets"),
+       nameTable = cms.string("ScoutingFatJet"),
+   ) 

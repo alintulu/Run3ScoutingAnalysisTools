@@ -2,6 +2,8 @@
 
 The code was develop in `CMSSW_12_4_5`.
 
+### Instructions
+
 1. Log into lxplus
 2. Prepare the CMSSW release
 
@@ -64,4 +66,22 @@ root> Events->Print()
 * etc
 ```
 
-Done!
+### AOD to MINIAOD with scouting
+
+```
+cmsDriver.py \
+  --python_filename aod2miniaod.py \
+  --eventcontent MINIAODSIM \
+  --customise Configuration/DataProcessing/Utils.addMonitoring \
+  --datatier MINIAODSIM \
+  --fileout file:miniaod.root \
+  --conditions auto:phase1_2022_realistic \
+  --step PAT \
+  --geometry DB:Extended \
+  --filein "/store/mc/Run3Summer22DRPremix/MinBias_TuneCP5_14TeV-pythia8/AODSIM/Pilot_124X_mcRun3_2022_realistic_v11-v2/50000/b255101d-13ab-4068-a46c-a5ea9e1a8a6c.root" \
+  --era Run3 \
+  --no_exec \
+  --mc \
+  -n 1 \
+ --customise_commands "process.MINIAODSIMoutput.outputCommands.extend(['drop *_hlt*_*_*','keep *_hltScoutingEgammaPacker_*_*','keep *_hltScoutingMuonPacker_*_*','keep *_hltScoutingPFPacker_*_*','keep *_hltScoutingPrimaryVertexPacker_*_*','keep *_hltScoutingTrackPacker_*_*','drop *_*_*_PAT','keep *_*GenParticles_*_*','keep *_slimmedGenJets*_*_*', 'keep *_slimmedMET*_*_*'])"
+```

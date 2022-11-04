@@ -1,5 +1,6 @@
 import FWCore.ParameterSet.Config as cms
 from Run3ScoutingAnalysisTools.Analysis.Run3ScoutingPF_cff import *
+from Run3ScoutingAnalysisTools.Analysis.Run3ScoutingOther_cff import *
 
 def customise(process):
 
@@ -7,15 +8,17 @@ def customise(process):
    addParticles(process)
    addAK4Jets(process)
    addAK8Jets(process)
+   addScouting(process)
 
    process.particleTask = cms.Task(process.pfcands,
                                    process.ak4Jets,
                                    process.particleTable,
-                                   process.ak4MatchGen,
                                    process.ak4JetTable,
+                                   #process.ak4MatchGenTable,
                                    process.ak8Jets,
-                                   process.ak8MatchGen,
                                    process.ak8JetTable,
+                                   #process.ak8MatchGenTable,
+                                   process.run3ScoutingTable,
   )
 
    process.schedule.associate(process.particleTask)

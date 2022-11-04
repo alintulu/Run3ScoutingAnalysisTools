@@ -15,10 +15,10 @@
 #include "DataFormats/JetReco/interface/GenJet.h"
 #include "DataFormats/Math/interface/deltaR.h"
 
-class MatchJetToGenJetProducer : public edm::stream::EDProducer<> {
+class MatchJetToGenJetTableProducer : public edm::stream::EDProducer<> {
 public:
-  explicit MatchJetToGenJetProducer(const edm::ParameterSet &);
-  ~MatchJetToGenJetProducer() override;
+  explicit MatchJetToGenJetTableProducer(const edm::ParameterSet &);
+  ~MatchJetToGenJetTableProducer() override;
 
   static void fillDescriptions(edm::ConfigurationDescriptions &descriptions);
 
@@ -34,16 +34,16 @@ private:
 //
 // constructors and destructor
 //
-MatchJetToGenJetProducer::MatchJetToGenJetProducer(const edm::ParameterSet &iConfig)
+MatchJetToGenJetTableProducer::MatchJetToGenJetTableProducer(const edm::ParameterSet &iConfig)
     : nameTable_(iConfig.getParameter<std::string>("nameTable")),
       input_scoutingjet_token_(consumes(iConfig.getParameter<edm::InputTag>("jets"))),
       input_genjet_token_(consumes(iConfig.getParameter<edm::InputTag>("genjets"))) {
   produces<nanoaod::FlatTable>(nameTable_);
 }
 
-MatchJetToGenJetProducer::~MatchJetToGenJetProducer() {}
+MatchJetToGenJetTableProducer::~MatchJetToGenJetTableProducer() {}
 
-void MatchJetToGenJetProducer::produce(edm::Event &iEvent, const edm::EventSetup &iSetup) {
+void MatchJetToGenJetTableProducer::produce(edm::Event &iEvent, const edm::EventSetup &iSetup) {
   // elements in all these collections must have the same order!
     
   // only necessary to explicitly check correct matching of jets
@@ -98,7 +98,7 @@ void MatchJetToGenJetProducer::produce(edm::Event &iEvent, const edm::EventSetup
   // DeepJetInputs table
   auto matchTable = std::make_unique<nanoaod::FlatTable>(jet_genJetIdx.size(), nameTable_, false, true);
     
-  matchTable->addColumn<int>(nameTable_ + "_genJetIdx",
+  matchTable->addColumn<int>("genJetIdx",
                           jet_genJetIdx,
                           "index of matched gen jet");
     
@@ -106,7 +106,7 @@ void MatchJetToGenJetProducer::produce(edm::Event &iEvent, const edm::EventSetup
   
 }
 
-void MatchJetToGenJetProducer::fillDescriptions(edm::ConfigurationDescriptions &descriptions) {
+void MatchJetToGenJetTableProducer::fillDescriptions(edm::ConfigurationDescriptions &descriptions) {
   edm::ParameterSetDescription desc;
   desc.add<edm::InputTag>("genjets", edm::InputTag("slimmedGenJets"));
   desc.add<edm::InputTag>("jets", edm::InputTag("ak4Jets"));
@@ -114,4 +114,4 @@ void MatchJetToGenJetProducer::fillDescriptions(edm::ConfigurationDescriptions &
   descriptions.addWithDefaultLabel(desc);
 }
 
-DEFINE_FWK_MODULE(MatchJetToGenJetProducer);
+DEFINE_FWK_MODULE(MatchJetToGenJetTableProducer);

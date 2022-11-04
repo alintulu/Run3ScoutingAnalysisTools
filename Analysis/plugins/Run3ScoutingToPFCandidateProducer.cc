@@ -50,6 +50,7 @@ Run3ScoutingToPFCandidateProducer::Run3ScoutingToPFCandidateProducer(const edm::
       debug_(iConfig.existsAs<bool>("debug") ? iConfig.getParameter<bool>("debug") : false) {
   //register products
   produces<std::vector<reco::PFCandidate>>();
+  //produces<edm::ValueMap<float>>("normchi2");
 }
 
 Run3ScoutingToPFCandidateProducer::~Run3ScoutingToPFCandidateProducer() = default;
@@ -77,6 +78,7 @@ void Run3ScoutingToPFCandidateProducer::produce(edm::StreamID sid, edm::Event & 
   Handle<std::vector<Run3ScoutingParticle>> scoutingparticleHandle;
   iEvent.getByToken(input_scoutingparticle_token_, scoutingparticleHandle);
 
+  //std::vector<float> normchi2(scoutingparticleHandle->size());
   auto pfcands = std::make_unique<std::vector<reco::PFCandidate>>(scoutingparticleHandle->size());
   for (unsigned int icand = 0; icand < scoutingparticleHandle->size(); ++icand) {
 
@@ -100,11 +102,17 @@ void Run3ScoutingToPFCandidateProducer::produce(edm::StreamID sid, edm::Event & 
  
       pfcand = reco::PFCandidate(q, p4, pfcand.translatePdgIdToType(scoutingparticle.pdgId()));
 
+      //normchi2[icand] = scoutingparticle.normchi2();
+
       if (debug_) print(scoutingparticle, pfcand);
   }
 
-  //put output
   iEvent.put(std::move(pfcands));
+  //std::unique_ptr<edm::ValueMap<float>> normchi2V(new edm::ValueMap<float>());
+  //edm::ValueMap<float>::Filler filler_normchi2(*normchi2V);
+  //filler_normchi2.insert(pfcands, normchi2.begin(), normchi2.end());
+  //filler_normchi2.fill();
+  //iEvent.put(std::move(normchi2V), "normchi2");
 }
 
 // ------------ method fills 'descriptions' with the allowed parameters for the module  ------------
