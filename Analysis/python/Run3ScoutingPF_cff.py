@@ -5,7 +5,9 @@ def scoutingToReco(process):
 
    process.pfcands = cms.EDProducer(
      "Run3ScoutingToPFCandidateProducer",
+     #"Run3ScoutingToPackedCandidateProducer",
      scoutingparticle=cms.InputTag("hltScoutingPFPacker"),
+     #scoutingvertex=cms.InputTag("hltScoutingPrimaryVertexPacker", "primaryVtx"),
    )
 
    process.ak4Jets = cms.EDProducer(

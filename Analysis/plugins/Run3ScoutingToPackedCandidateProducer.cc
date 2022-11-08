@@ -21,6 +21,7 @@
 #include "DataFormats/Candidate/interface/LeafCandidate.h"
 #include "DataFormats/PatCandidates/interface/PackedCandidate.h"
 #include "DataFormats/Common/interface/ValueMap.h"
+#include "DataFormats/Common/interface/OrphanHandle.h"
 
 #include "DataFormats/Math/interface/deltaR.h"
 
@@ -51,7 +52,7 @@ Run3ScoutingToPackedCandidateProducer::Run3ScoutingToPackedCandidateProducer(con
       input_scoutingvertex_input_(consumes(iConfig.getParameter<edm::InputTag>("scoutingvertex"))),
       particleTableToken       (esConsumes<HepPDT::ParticleDataTable, edm::DefaultRecord>()) {
   //register products
-  //produces<std::vector<pat::PackedCandidate>>();
+  produces<std::vector<pat::PackedCandidate>>();
   produces<edm::ValueMap<float>>("normchi2");
 }
 
@@ -89,11 +90,14 @@ void Run3ScoutingToPackedCandidateProducer::produce(edm::StreamID sid, edm::Even
       normchi2[icand] = scoutingparticle.normchi2();
   }
 
+  std::vector<pat::PackedCandidate> const *const_packs = &(*packs);
+
   //put output
-  //iEvent.put(std::move(packs));
+  iEvent.put(std::move(packs));
   std::unique_ptr<edm::ValueMap<float>> normchi2V(new edm::ValueMap<float>());
   edm::ValueMap<float>::Filler filler_normchi2(*normchi2V);
-  filler_normchi2.insert(packs, normchi2.begin(), normchi2.end());
+  ProductID const pidK(1, 3);
+  filler_normchi2.insert(OrphanHandle<std::vector<pat::PackedCandidate>>(const_packs, pidK), normchi2.begin(), normchi2.end());
   filler_normchi2.fill();
   iEvent.put(std::move(normchi2V), "normchi2");
 }
@@ -102,7 +106,7 @@ void Run3ScoutingToPackedCandidateProducer::produce(edm::StreamID sid, edm::Even
 void Run3ScoutingToPackedCandidateProducer::fillDescriptions(edm::ConfigurationDescriptions &descriptions) {
   edm::ParameterSetDescription desc;
   desc.add<edm::InputTag>("scoutingparticle", edm::InputTag("hltScoutingPFPacker"));
-  desc.add<edm::InputTag>("scoutingvertex", edm::InputTag("hltScoutingPrimaryVertexPacker"));
+  desc.add<edm::InputTag>("scoutingvertex", edm::InputTag("hltScoutingPrimaryVertexPacker", "primaryVtx"));
   descriptions.addWithDefaultLabel(desc);
 }
 

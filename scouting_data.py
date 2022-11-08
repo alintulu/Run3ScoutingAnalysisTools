@@ -7,7 +7,7 @@ import FWCore.ParameterSet.Config as cms
 
 from Configuration.Eras.Era_Run3_cff import Run3
 
-process = cms.Process('NANOGEN',Run3)
+process = cms.Process('SCOUTING',Run3)
 
 # import of standard configurations
 process.load('Configuration.StandardSequences.Services_cff')
@@ -22,7 +22,7 @@ process.load('Configuration.StandardSequences.EndOfProcess_cff')
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 
 process.maxEvents = cms.untracked.PSet(
-    input = cms.untracked.int32(1),
+    input = cms.untracked.int32(10),
     output = cms.optional.untracked.allowed(cms.int32,cms.PSet)
 )
 
@@ -79,11 +79,12 @@ process.configurationMetadata = cms.untracked.PSet(
 process.NANOAODGENoutput = cms.OutputModule("NanoAODOutputModule",
     compressionAlgorithm = cms.untracked.string('LZMA'),
     compressionLevel = cms.untracked.int32(9),
+    saveProvenance = cms.untracked.bool(True),
     dataset = cms.untracked.PSet(
         dataTier = cms.untracked.string('NANOAOD'),
         filterName = cms.untracked.string('')
     ),
-    fileName = cms.untracked.string('file:nanogen.root'),
+    fileName = cms.untracked.string('file:scoutingnano_data.root'),
     outputCommands = process.NANOAODGENEventContent.outputCommands
 )
 
@@ -91,7 +92,7 @@ process.NANOAODGENoutput = cms.OutputModule("NanoAODOutputModule",
 
 # Other statements
 from Configuration.AlCa.GlobalTag import GlobalTag
-process.GlobalTag = GlobalTag(process.GlobalTag, 'auto:phase1_2022_realistic', '')
+process.GlobalTag = GlobalTag(process.GlobalTag, '124X_dataRun3_HLT_v4', '') #'auto:phase1_2022_realistic', '')
 
 # L1 RAW to Digi to PATTrigger
 process.load("PhysicsTools.NanoAOD.triggerObjects_cff")

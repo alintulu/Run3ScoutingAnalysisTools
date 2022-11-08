@@ -27,7 +27,8 @@ public:
 private:
   void produce(edm::Event &, const edm::EventSetup &) override;
    
-  const edm::EDGetTokenT<std::vector<Run3ScoutingVertex>> input_vertex_token_;
+  const edm::EDGetTokenT<std::vector<Run3ScoutingVertex>> input_primaryvertex_token_;
+  const edm::EDGetTokenT<std::vector<Run3ScoutingVertex>> input_displacedvertex_token_;
   const edm::EDGetTokenT<std::vector<Run3ScoutingPhoton>> input_photon_token_;
   const edm::EDGetTokenT<std::vector<Run3ScoutingMuon>> input_muon_token_;
   const edm::EDGetTokenT<std::vector<Run3ScoutingElectron>> input_electron_token_;
@@ -42,7 +43,8 @@ private:
 // constructors and destructor
 //
 Run3ScoutingTableProducer::Run3ScoutingTableProducer(const edm::ParameterSet &iConfig)
-    : input_vertex_token_(consumes(iConfig.getParameter<edm::InputTag>("vertex"))), 
+    : input_primaryvertex_token_(consumes(iConfig.getParameter<edm::InputTag>("primaryvertex"))), 
+      input_displacedvertex_token_(consumes(iConfig.getParameter<edm::InputTag>("displacedvertex"))), 
       input_photon_token_(consumes(iConfig.getParameter<edm::InputTag>("photon"))),
       input_muon_token_(consumes(iConfig.getParameter<edm::InputTag>("muon"))),
       input_electron_token_(consumes(iConfig.getParameter<edm::InputTag>("electron"))),
@@ -50,7 +52,8 @@ Run3ScoutingTableProducer::Run3ScoutingTableProducer(const edm::ParameterSet &iC
       input_metpt_token_(consumes<double>(iConfig.getParameter<edm::InputTag>("metpt"))),
       input_metphi_token_ (consumes<double>(iConfig.getParameter<edm::InputTag>("metphi"))),
       input_rho_token_ (consumes<double>(iConfig.getParameter<edm::InputTag>("rho"))) {
-  produces<nanoaod::FlatTable>("ScoutingVertex");
+  produces<nanoaod::FlatTable>("ScoutingPrimaryVertex");
+  produces<nanoaod::FlatTable>("ScoutingDisplacedVertex");
   produces<nanoaod::FlatTable>("ScoutingPhoton");
   produces<nanoaod::FlatTable>("ScoutingMuon");
   produces<nanoaod::FlatTable>("ScoutingElectron");
@@ -63,7 +66,7 @@ Run3ScoutingTableProducer::~Run3ScoutingTableProducer() {}
 
 void Run3ScoutingTableProducer::produce(edm::Event &iEvent, const edm::EventSetup &iSetup) {
   
-  auto vertex = iEvent.getHandle(input_vertex_token_);
+  auto vertex = iEvent.getHandle(input_primaryvertex_token_);
   std::vector<float> vertex_x;
   std::vector<float> vertex_y;
   std::vector<float> vertex_z;
@@ -86,7 +89,8 @@ void Run3ScoutingTableProducer::produce(edm::Event &iEvent, const edm::EventSetu
      vertex_isValidVtx.push_back((*vertex)[i].isValidVtx());
   }
       
-  auto vertexTable = std::make_unique<nanoaod::FlatTable>(vertex->size(), "ScoutingVertex", false, false);
+  auto vertexTable = std::make_unique<nanoaod::FlatTable>(vertex->size(), "ScoutingPrimaryVertex", false, false);
+  vertexTable->setDoc("PFScouting primary vertex, i.e. hltPixelVertices");
   vertexTable->addColumn<float>("x", vertex_x, "vertex x");
   vertexTable->addColumn<float>("y", vertex_y, "vertex y");
   vertexTable->addColumn<float>("z", vertex_z, "vertex z");
@@ -96,6 +100,41 @@ void Run3ScoutingTableProducer::produce(edm::Event &iEvent, const edm::EventSetu
   vertexTable->addColumn<float>("tracksSize", vertex_tracksSize, "track size");
   vertexTable->addColumn<float>("chi2", vertex_chi2, "vertex chi2");
   vertexTable->addColumn<float>("isValidVertex", vertex_isValidVtx, "boolean if vertex is valid");
+
+  auto dispvertex = iEvent.getHandle(input_displacedvertex_token_);
+  std::vector<float> dispvertex_x;
+  std::vector<float> dispvertex_y;
+  std::vector<float> dispvertex_z;
+  std::vector<float> dispvertex_xError;
+  std::vector<float> dispvertex_yError;
+  std::vector<float> dispvertex_zError;
+  std::vector<int> dispvertex_tracksSize;
+  std::vector<float> dispvertex_chi2;
+  std::vector<bool> dispvertex_isValidVtx;
+
+  for (unsigned i = 0; i < dispvertex->size(); ++i) {
+     dispvertex_x.push_back((*dispvertex)[i].x());
+     dispvertex_y.push_back((*dispvertex)[i].y());
+     dispvertex_z.push_back((*dispvertex)[i].z());
+     dispvertex_xError.push_back((*dispvertex)[i].xError());
+     dispvertex_yError.push_back((*dispvertex)[i].yError());
+     dispvertex_zError.push_back((*dispvertex)[i].zError());
+     dispvertex_tracksSize.push_back((*dispvertex)[i].tracksSize());
+     dispvertex_chi2.push_back((*dispvertex)[i].chi2());
+     dispvertex_isValidVtx.push_back((*dispvertex)[i].isValidVtx());
+  }
+      
+  auto dispvertexTable = std::make_unique<nanoaod::FlatTable>(dispvertex->size(), "ScoutingDisplacedVertex", false, false);
+  dispvertexTable->setDoc("PFScouting displaced vertex, i.e. hltScoutingMuonPacker");
+  dispvertexTable->addColumn<float>("x", dispvertex_x, "vertex x");
+  dispvertexTable->addColumn<float>("y", dispvertex_y, "vertex y");
+  dispvertexTable->addColumn<float>("z", dispvertex_z, "vertex z");
+  dispvertexTable->addColumn<float>("xError", dispvertex_xError, "vertex x error");
+  dispvertexTable->addColumn<float>("yError", dispvertex_yError, "vertex y error");
+  dispvertexTable->addColumn<float>("zError", dispvertex_zError, "vertex z error");
+  dispvertexTable->addColumn<float>("tracksSize", dispvertex_tracksSize, "track size");
+  dispvertexTable->addColumn<float>("chi2", dispvertex_chi2, "vertex chi2");
+  dispvertexTable->addColumn<float>("isValidVertex", dispvertex_isValidVtx, "boolean if vertex is valid");
 
   auto photon = iEvent.getHandle(input_photon_token_);
   std::vector<float> photon_pt;
@@ -137,6 +176,7 @@ void Run3ScoutingTableProducer::produce(edm::Event &iEvent, const edm::EventSetu
   }
       
   auto photonTable = std::make_unique<nanoaod::FlatTable>(photon->size(), "ScoutingPhoton", false, false);
+  photonTable->setDoc("PFScouting photon, i.e. hltScoutingEgammaPacker");
   photonTable->addColumn<float>("pt", photon_pt, "photon pt");
   photonTable->addColumn<float>("eta", photon_eta, "photon eta");
   photonTable->addColumn<float>("phi", photon_phi, "photon phi");
@@ -266,6 +306,7 @@ void Run3ScoutingTableProducer::produce(edm::Event &iEvent, const edm::EventSetu
   }
       
   auto muonTable = std::make_unique<nanoaod::FlatTable>(muon->size(), "ScoutingMuon", false, false);
+  muonTable->setDoc("PFScouting muon, i.e. hltScoutingMuonPacker");
   muonTable->addColumn<float>("pt", muon_pt, "muon pt");
   muonTable->addColumn<float>("eta", muon_eta, "muon eta");
   muonTable->addColumn<float>("phi", muon_phi, "muon phi");
@@ -371,6 +412,7 @@ void Run3ScoutingTableProducer::produce(edm::Event &iEvent, const edm::EventSetu
   }
       
   auto electronTable = std::make_unique<nanoaod::FlatTable>(electron->size(), "ScoutingElectron", false, false);
+  electronTable->setDoc("PFScouting electron, i.e. hltScoutingEgammaPacker");
   electronTable->addColumn<float>("pt", electron_pt, "electron pt");
   electronTable->addColumn<float>("eta", electron_eta, "electron eta");
   electronTable->addColumn<float>("phi", electron_phi, "electron phi");
@@ -463,6 +505,7 @@ void Run3ScoutingTableProducer::produce(edm::Event &iEvent, const edm::EventSetu
   }
       
   auto trackTable = std::make_unique<nanoaod::FlatTable>(track->size(), "ScoutingTrack", false, false);
+  trackTable->setDoc("PFScouting track, i.e. hltPixelOnlyPFMuonMerging");
   trackTable->addColumn<float>("pt", track_pt, "track pt");
   trackTable->addColumn<float>("eta", track_eta, "track eta");
   trackTable->addColumn<float>("phi", track_phi, "track phi");
@@ -496,13 +539,16 @@ void Run3ScoutingTableProducer::produce(edm::Event &iEvent, const edm::EventSetu
   trackTable->addColumn<float>("vz", track_vz, "track trk vz");
  
   auto metTable = std::make_unique<nanoaod::FlatTable>(2, "ScoutingMET", true, false);
+  metTable->setDoc("PFScouting MET, i.e. hltPixelOnlyPFMETProducer");
   metTable->addColumnValue<double>("pt", *iEvent.getHandle(input_metpt_token_), "met pt");
   metTable->addColumnValue<double>("phi", *iEvent.getHandle(input_metphi_token_), "met phi");
 
   auto rhoTable = std::make_unique<nanoaod::FlatTable>(1, "ScoutingRho", true, false);
+  rhoTable->setDoc("PFScouting rho, i.e. hltFixedGridRhoFastjetPixelOnlyAll");
   rhoTable->addColumnValue<double>("", *iEvent.getHandle(input_rho_token_), "rho");
   
-  iEvent.put(std::move(vertexTable), "ScoutingVertex");
+  iEvent.put(std::move(vertexTable), "ScoutingPrimaryVertex");
+  iEvent.put(std::move(dispvertexTable), "ScoutingDisplacedVertex");
   iEvent.put(std::move(photonTable), "ScoutingPhoton");
   iEvent.put(std::move(muonTable), "ScoutingMuon");
   iEvent.put(std::move(electronTable), "ScoutingElectron");
@@ -513,7 +559,8 @@ void Run3ScoutingTableProducer::produce(edm::Event &iEvent, const edm::EventSetu
 
 void Run3ScoutingTableProducer::fillDescriptions(edm::ConfigurationDescriptions &descriptions) {
   edm::ParameterSetDescription desc;
-  desc.add<edm::InputTag>("vertex", edm::InputTag("hltScoutingPrimaryVertexPacker", "primaryVtx"));
+  desc.add<edm::InputTag>("primaryvertex", edm::InputTag("hltScoutingPrimaryVertexPacker", "primaryVtx"));
+  desc.add<edm::InputTag>("displacedvertex", edm::InputTag("hltScoutingMuonPacker","displacedVtx"));
   desc.add<edm::InputTag>("photon", edm::InputTag("hltScoutingEgammaPacker"));
   desc.add<edm::InputTag>("muon", edm::InputTag("hltScoutingMuonPacker"));
   desc.add<edm::InputTag>("electron", edm::InputTag("hltScoutingEgammaPacker"));

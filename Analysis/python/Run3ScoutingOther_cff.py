@@ -4,7 +4,8 @@ from  PhysicsTools.NanoAOD.common_cff import *
 def addScouting(process):
 
    process.run3ScoutingTable = cms.EDProducer("Run3ScoutingTableProducer",
-       vertex = cms.InputTag("hltScoutingPrimaryVertexPacker", "primaryVtx"),
+       primaryvertex = cms.InputTag("hltScoutingPrimaryVertexPacker", "primaryVtx"),
+       displacedvertex = cms.InputTag("hltScoutingMuonPacker","displacedVtx"),
        photon = cms.InputTag("hltScoutingEgammaPacker"),
        muon = cms.InputTag("hltScoutingMuonPacker"),
        electron = cms.InputTag("hltScoutingEgammaPacker"),
