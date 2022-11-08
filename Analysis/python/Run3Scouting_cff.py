@@ -18,6 +18,7 @@ def customise(process):
                                    process.ak8Jets,
                                    process.ak8JetTable,
                                    #process.ak8MatchGenTable,
+                                   process.AK8ParticleNetJetTagInfos,
                                    process.run3ScoutingTable,
   )
 

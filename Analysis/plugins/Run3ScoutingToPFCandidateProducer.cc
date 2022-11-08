@@ -50,17 +50,18 @@ Run3ScoutingToPFCandidateProducer::Run3ScoutingToPFCandidateProducer(const edm::
       particletable_token_(esConsumes<HepPDT::ParticleDataTable, edm::DefaultRecord>()),
       debug_(iConfig.existsAs<bool>("debug") ? iConfig.getParameter<bool>("debug") : false) {
   //register products
-  produces<std::vector<reco::PFCandidate>>();
+  produces<reco::PFCandidateCollection>();
+  produces<edm::ValueMap<int>>("vertexIndex");
   produces<edm::ValueMap<float>>("normchi2");
   produces<edm::ValueMap<float>>("dz");
   produces<edm::ValueMap<float>>("dxy");
   produces<edm::ValueMap<float>>("dzsig");
   produces<edm::ValueMap<float>>("dxysig");
-  produces<edm::ValueMap<uint8_t>>("lostInnerHits");
-  produces<edm::ValueMap<uint8_t>>("quality");
-  produces<edm::ValueMap<float>>("trk_pt");
-  produces<edm::ValueMap<float>>("trk_eta");
-  produces<edm::ValueMap<float>>("trk_phi");
+  produces<edm::ValueMap<int>>("lostInnerHits");
+  produces<edm::ValueMap<int>>("quality");
+  produces<edm::ValueMap<float>>("trkPt");
+  produces<edm::ValueMap<float>>("trkEta");
+  produces<edm::ValueMap<float>>("trkPhi");
 }
 
 Run3ScoutingToPFCandidateProducer::~Run3ScoutingToPFCandidateProducer() = default;
@@ -88,18 +89,19 @@ void Run3ScoutingToPFCandidateProducer::produce(edm::StreamID sid, edm::Event & 
   Handle<std::vector<Run3ScoutingParticle>> scoutingparticleHandle;
   iEvent.getByToken(input_scoutingparticle_token_, scoutingparticleHandle);
 
+  std::vector<int8_t> vertexIndex(scoutingparticleHandle->size());
   std::vector<float> normchi2(scoutingparticleHandle->size());
   std::vector<float> dz(scoutingparticleHandle->size());
   std::vector<float> dxy(scoutingparticleHandle->size());
   std::vector<float> dzsig(scoutingparticleHandle->size());
   std::vector<float> dxysig(scoutingparticleHandle->size());
-  std::vector<uint8_t> lostInnerHits(scoutingparticleHandle->size());
-  std::vector<uint8_t> quality(scoutingparticleHandle->size());
-  std::vector<float> trk_pt(scoutingparticleHandle->size());
-  std::vector<float> trk_eta(scoutingparticleHandle->size());
-  std::vector<float> trk_phi(scoutingparticleHandle->size());
+  std::vector<int> lostInnerHits(scoutingparticleHandle->size());
+  std::vector<int> quality(scoutingparticleHandle->size());
+  std::vector<float> trkPt(scoutingparticleHandle->size());
+  std::vector<float> trkEta(scoutingparticleHandle->size());
+  std::vector<float> trkPhi(scoutingparticleHandle->size());
 
-  auto pfcands = std::make_unique<std::vector<reco::PFCandidate>>(scoutingparticleHandle->size());
+  auto pfcands = std::make_unique<reco::PFCandidateCollection>(scoutingparticleHandle->size());
   for (unsigned int icand = 0; icand < scoutingparticleHandle->size(); ++icand) {
 
       auto& pfcand = dynamic_cast<reco::PFCandidate&>((*pfcands)[icand]);
@@ -122,6 +124,8 @@ void Run3ScoutingToPFCandidateProducer::produce(edm::StreamID sid, edm::Event & 
  
       pfcand = reco::PFCandidate(q, p4, pfcand.translatePdgIdToType(scoutingparticle.pdgId()));
 
+      bool relativeTrackVars = scoutingparticle.relative_trk_vars();
+      vertexIndex[icand] = scoutingparticle.vertex();
       normchi2[icand] = scoutingparticle.normchi2();
       dz[icand] = scoutingparticle.dz();
       dxy[icand] = scoutingparticle.dxy();
@@ -129,76 +133,83 @@ void Run3ScoutingToPFCandidateProducer::produce(edm::StreamID sid, edm::Event & 
       dxysig[icand] = scoutingparticle.dxysig();
       lostInnerHits[icand] = scoutingparticle.lostInnerHits();
       quality[icand] = scoutingparticle.quality();
-      trk_pt[icand] = scoutingparticle.trk_pt();
-      trk_eta[icand] = scoutingparticle.trk_eta();
-      trk_phi[icand] = scoutingparticle.trk_phi();
+      trkPt[icand] = relativeTrackVars ? scoutingparticle.trk_pt() + scoutingparticle.pt() : scoutingparticle.trk_pt();
+      trkEta[icand] = relativeTrackVars ? scoutingparticle.trk_eta() + scoutingparticle.eta() : scoutingparticle.trk_eta();
+      trkPhi[icand] = relativeTrackVars ? scoutingparticle.trk_phi() + scoutingparticle.phi() : scoutingparticle.trk_phi();
 
       if (debug_) print(scoutingparticle, pfcand);
   }
 
-  ProductID const pidK0(1, 0);
-  std::vector<reco::PFCandidate> const *const_pfcands = &(*pfcands);
-  iEvent.put(std::move(pfcands)); 
+  //ProductID const pidK0(1, 0);
+  //reco::PFCandidateCollection const *const_pfcands = &(*pfcands);
+  edm::OrphanHandle<reco::PFCandidateCollection> oh = iEvent.put(std::move(pfcands));
+  //edm::OrphanHandle<reco::PFCandidateCollection> oh = iEvent.emplace(ptokenPFCandidates_, pfcands);
   
-  std::unique_ptr<edm::ValueMap<float>> normchi2V(new edm::ValueMap<float>());
-  edm::ValueMap<float>::Filler filler_normchi2(*normchi2V);
-  filler_normchi2.insert(OrphanHandle<std::vector<reco::PFCandidate>>(const_pfcands, pidK0), normchi2.begin(), normchi2.end());
+  std::unique_ptr<edm::ValueMap<int>> vertexIndex_VM(new edm::ValueMap<int>());
+  edm::ValueMap<int>::Filler filler_vertexIndex(*vertexIndex_VM);
+  filler_vertexIndex.insert(oh, vertexIndex.begin(), vertexIndex.end());
+  filler_vertexIndex.fill();
+  iEvent.put(std::move(vertexIndex_VM), "vertexIndex");
+  
+  std::unique_ptr<edm::ValueMap<float>> normchi2_VM(new edm::ValueMap<float>());
+  edm::ValueMap<float>::Filler filler_normchi2(*normchi2_VM);
+  filler_normchi2.insert(oh, normchi2.begin(), normchi2.end());
   filler_normchi2.fill();
-  iEvent.put(std::move(normchi2V), "normchi2");
+  iEvent.put(std::move(normchi2_VM), "normchi2");
 
-  std::unique_ptr<edm::ValueMap<float>> dzV(new edm::ValueMap<float>());
-  edm::ValueMap<float>::Filler filler_dz(*dzV);
-  filler_dz.insert(OrphanHandle<std::vector<reco::PFCandidate>>(const_pfcands, pidK0), dz.begin(), dz.end());
+  std::unique_ptr<edm::ValueMap<float>> dz_VM(new edm::ValueMap<float>());
+  edm::ValueMap<float>::Filler filler_dz(*dz_VM);
+  filler_dz.insert(oh, dz.begin(), dz.end());
   filler_dz.fill();
-  iEvent.put(std::move(dzV), "dz");
+  iEvent.put(std::move(dz_VM), "dz");
 
-  std::unique_ptr<edm::ValueMap<float>> dxyV(new edm::ValueMap<float>());
-  edm::ValueMap<float>::Filler filler_dxy(*dxyV);
-  filler_dxy.insert(OrphanHandle<std::vector<reco::PFCandidate>>(const_pfcands, pidK0), dxy.begin(), dxy.end());
+  std::unique_ptr<edm::ValueMap<float>> dxy_VM(new edm::ValueMap<float>());
+  edm::ValueMap<float>::Filler filler_dxy(*dxy_VM);
+  filler_dxy.insert(oh, dxy.begin(), dxy.end());
   filler_dxy.fill();
-  iEvent.put(std::move(dxyV), "dxy");
+  iEvent.put(std::move(dxy_VM), "dxy");
 
-  std::unique_ptr<edm::ValueMap<float>> dzsigV(new edm::ValueMap<float>());
-  edm::ValueMap<float>::Filler filler_dzsig(*dzsigV);
-  filler_dzsig.insert(OrphanHandle<std::vector<reco::PFCandidate>>(const_pfcands, pidK0), dzsig.begin(), dzsig.end());
+  std::unique_ptr<edm::ValueMap<float>> dzsig_VM(new edm::ValueMap<float>());
+  edm::ValueMap<float>::Filler filler_dzsig(*dzsig_VM);
+  filler_dzsig.insert(oh, dzsig.begin(), dzsig.end());
   filler_dzsig.fill();
-  iEvent.put(std::move(dzsigV), "dzsig");
+  iEvent.put(std::move(dzsig_VM), "dzsig");
 
-  std::unique_ptr<edm::ValueMap<float>> dxysigV(new edm::ValueMap<float>());
-  edm::ValueMap<float>::Filler filler_dxysig(*dxysigV);
-  filler_dxysig.insert(OrphanHandle<std::vector<reco::PFCandidate>>(const_pfcands, pidK0), dxysig.begin(), dxysig.end());
+  std::unique_ptr<edm::ValueMap<float>> dxysig_VM(new edm::ValueMap<float>());
+  edm::ValueMap<float>::Filler filler_dxysig(*dxysig_VM);
+  filler_dxysig.insert(oh, dxysig.begin(), dxysig.end());
   filler_dxysig.fill();
-  iEvent.put(std::move(dxysigV), "dxysig");
+  iEvent.put(std::move(dxysig_VM), "dxysig");
 
-  std::unique_ptr<edm::ValueMap<uint8_t>> lostInnerHitsV(new edm::ValueMap<uint8_t>());
-  edm::ValueMap<uint8_t>::Filler filler_lostInnerHits(*lostInnerHitsV);
-  filler_lostInnerHits.insert(OrphanHandle<std::vector<reco::PFCandidate>>(const_pfcands, pidK0), lostInnerHits.begin(), lostInnerHits.end());
+  std::unique_ptr<edm::ValueMap<int>> lostInnerHits_VM(new edm::ValueMap<int>());
+  edm::ValueMap<int>::Filler filler_lostInnerHits(*lostInnerHits_VM);
+  filler_lostInnerHits.insert(oh, lostInnerHits.begin(), lostInnerHits.end());
   filler_lostInnerHits.fill();
-  iEvent.put(std::move(lostInnerHitsV), "lostInnerHits");
+  iEvent.put(std::move(lostInnerHits_VM), "lostInnerHits");
 
-  std::unique_ptr<edm::ValueMap<uint8_t>> qualityV(new edm::ValueMap<uint8_t>());
-  edm::ValueMap<uint8_t>::Filler filler_quality(*qualityV);
-  filler_quality.insert(OrphanHandle<std::vector<reco::PFCandidate>>(const_pfcands, pidK0), quality.begin(), quality.end());
+  std::unique_ptr<edm::ValueMap<int>> quality_VM(new edm::ValueMap<int>());
+  edm::ValueMap<int>::Filler filler_quality(*quality_VM);
+  filler_quality.insert(oh, quality.begin(), quality.end());
   filler_quality.fill();
-  iEvent.put(std::move(qualityV), "quality");
+  iEvent.put(std::move(quality_VM), "quality");
 
-  std::unique_ptr<edm::ValueMap<float>> trk_ptV(new edm::ValueMap<float>());
-  edm::ValueMap<float>::Filler filler_trk_pt(*trk_ptV);
-  filler_trk_pt.insert(OrphanHandle<std::vector<reco::PFCandidate>>(const_pfcands, pidK0), trk_pt.begin(), trk_pt.end());
-  filler_trk_pt.fill();
-  iEvent.put(std::move(trk_ptV), "trk_pt");
+  std::unique_ptr<edm::ValueMap<float>> trkPt_VM(new edm::ValueMap<float>());
+  edm::ValueMap<float>::Filler filler_trkPt(*trkPt_VM);
+  filler_trkPt.insert(oh, trkPt.begin(), trkPt.end());
+  filler_trkPt.fill();
+  iEvent.put(std::move(trkPt_VM), "trkPt");
 
-  std::unique_ptr<edm::ValueMap<float>> trk_etaV(new edm::ValueMap<float>());
-  edm::ValueMap<float>::Filler filler_trk_eta(*trk_etaV);
-  filler_trk_eta.insert(OrphanHandle<std::vector<reco::PFCandidate>>(const_pfcands, pidK0), trk_eta.begin(), trk_eta.end());
-  filler_trk_eta.fill();
-  iEvent.put(std::move(trk_etaV), "trk_eta");
+  std::unique_ptr<edm::ValueMap<float>> trkEta_VM(new edm::ValueMap<float>());
+  edm::ValueMap<float>::Filler filler_trkEta(*trkEta_VM);
+  filler_trkEta.insert(oh, trkEta.begin(), trkEta.end());
+  filler_trkEta.fill();
+  iEvent.put(std::move(trkEta_VM), "trkEta");
 
-  std::unique_ptr<edm::ValueMap<float>> trk_phiV(new edm::ValueMap<float>());
-  edm::ValueMap<float>::Filler filler_trk_phi(*trk_phiV);
-  filler_trk_phi.insert(OrphanHandle<std::vector<reco::PFCandidate>>(const_pfcands, pidK0), trk_phi.begin(), trk_phi.end());
-  filler_trk_phi.fill();
-  iEvent.put(std::move(trk_phiV), "trk_phi");
+  std::unique_ptr<edm::ValueMap<float>> trkPhi_VM(new edm::ValueMap<float>());
+  edm::ValueMap<float>::Filler filler_trkPhi(*trkPhi_VM);
+  filler_trkPhi.insert(oh, trkPhi.begin(), trkPhi.end());
+  filler_trkPhi.fill();
+  iEvent.put(std::move(trkPhi_VM), "trkPhi");
 }
 
 // ------------ method fills 'descriptions' with the allowed parameters for the module  ------------

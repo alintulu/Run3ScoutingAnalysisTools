@@ -25,6 +25,18 @@ def addParticles(process):
        doc = cms.string("ScoutingParticle"),
        singleton = cms.bool(False),
        extension = cms.bool(False), # this is the main table
+       externalVariables = cms.PSet(
+          normchi2 = ExtVar(cms.InputTag("pfcands", "normchi2"), float, doc="normchi2 of best track", precision=6),
+          dz = ExtVar(cms.InputTag("pfcands", "dz"), float, doc="dz of best track", precision=6),
+          dxy = ExtVar(cms.InputTag("pfcands", "dxy"), float, doc="dxy of best track", precision=6),
+          dzsig = ExtVar(cms.InputTag("pfcands", "dzsig"), float, doc="dzsig of best track", precision=6),
+          dxysig = ExtVar(cms.InputTag("pfcands", "dxysig"), float, doc="dxysig of best track", precision=6),
+          lostInnerHits = ExtVar(cms.InputTag("pfcands", "lostInnerHits"), int, doc="lostInnerHits of best track"),
+          quality = ExtVar(cms.InputTag("pfcands", "quality"), int, doc="quality of best track"),
+          trkPt = ExtVar(cms.InputTag("pfcands", "trkPt"), float, doc="pt of best track", precision=6),
+          trkEta = ExtVar(cms.InputTag("pfcands", "trkEta"), float, doc="eta of best track", precision=6),
+          trkPhi = ExtVar(cms.InputTag("pfcands", "trkPhi"), float, doc="phi of best track", precision=6),
+       ),
        variables = cms.PSet(
           CandVars,
        ),
@@ -87,6 +99,24 @@ def addAK8Jets(process):
        variables = cms.PSet(
           P4Vars,
        ),
+   )
+
+   process.AK8ParticleNetJetTagInfos = cms.EDProducer("DeepBoostedJetTagInfoScoutingProducer",
+       jet_radius = cms.double( 0.8 ),
+       min_jet_pt = cms.double( 170.0 ),
+       max_jet_eta = cms.double( 2.5 ),
+       min_pt_for_track_properties = cms.double( 0.95 ),
+       min_pt_for_pfcandidates = cms.double( 0.1 ),
+       use_puppiP4 = cms.bool( False ),
+       include_neutrals = cms.bool( True ),
+       sort_by_sip2dsig = cms.bool( False ),
+       min_puppi_wgt = cms.double( -1.0 ),
+       flip_ip_sign = cms.bool( False ),
+       sip3dSigMax = cms.double( -1.0 ),
+       use_hlt_features = cms.bool( False ),
+       pf_candidates = cms.InputTag( "pfcands" ),
+       jets = cms.InputTag( "ak8Jets" ),
+       puppi_value_map = cms.InputTag( "" ),
    )
 
    process.ak8MatchGenTable = cms.EDProducer("MatchJetToGenJetTableProducer",

@@ -16,4 +16,5 @@
 <use name="Run3ScoutingAnalysisTools/Analysis"/>
 <use name="SimGeneral/HepPDTRecord"/>
 <use name="DataFormats/NanoAOD"/>
+<use name="DataFormats/BTauReco"/>
 <flags EDM_PLUGIN="1"/>
