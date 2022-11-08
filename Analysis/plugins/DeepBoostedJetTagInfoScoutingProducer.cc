@@ -243,6 +243,16 @@ void DeepBoostedJetTagInfoScoutingProducer::fillDescriptions(edm::ConfigurationD
   desc.add<edm::InputTag>("pf_candidates", edm::InputTag("particleFlow"));
   desc.add<edm::InputTag>("jets", edm::InputTag("ak8PFJetsPuppi"));
   desc.add<edm::InputTag>("puppi_value_map", edm::InputTag("puppi"));
+  desc.add<edm::InputTag>("normchi2_value_map", edm::InputTag("normchi2"));
+  desc.add<edm::InputTag>("dz_value_map", edm::InputTag("dz"));
+  desc.add<edm::InputTag>("dxy_value_map", edm::InputTag("dxy"));
+  desc.add<edm::InputTag>("dzsig_value_map", edm::InputTag("dzsig"));
+  desc.add<edm::InputTag>("dxysig_value_map", edm::InputTag("dxysig"));
+  desc.add<edm::InputTag>("lostInnerHits_value_map", edm::InputTag("lostInnerHits"));
+  desc.add<edm::InputTag>("quality_value_map", edm::InputTag("quality"));
+  desc.add<edm::InputTag>("trkPt_value_map", edm::InputTag("trkPt"));
+  desc.add<edm::InputTag>("trkEta_value_map", edm::InputTag("trkEta"));
+  desc.add<edm::InputTag>("trkPhi_value_map", edm::InputTag("trkPhi"));
   descriptions.add("pfDeepBoostedJetTagInfos", desc);
 }
 

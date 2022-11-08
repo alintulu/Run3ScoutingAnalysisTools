@@ -117,6 +117,16 @@ def addAK8Jets(process):
        pf_candidates = cms.InputTag( "pfcands" ),
        jets = cms.InputTag( "ak8Jets" ),
        puppi_value_map = cms.InputTag( "" ),
+       normchi2_value_map = cms.InputTag("pfcands", "normchi2"),
+       dz_value_map = cms.InputTag("pfcands", "dz"),
+       dxy_value_map = cms.InputTag("pfcands", "dxy"),
+       dzsig_value_map = cms.InputTag("pfcands", "dzsig"),
+       dxysig_value_map = cms.InputTag("pfcands", "dxysig"),
+       lostInnerHits_value_map = cms.InputTag("pfcands", "lostInnerHits"),
+       quality_value_map = cms.InputTag("pfcands", "quality"),
+       trkPt_value_map = cms.InputTag("pfcands", "trkPt"),
+       trkEta_value_map = cms.InputTag("pfcands", "trkEta"),
+       trkPhi_value_map = cms.InputTag("pfcands", "trkPhi"),
    )
 
    process.ak8MatchGenTable = cms.EDProducer("MatchJetToGenJetTableProducer",
