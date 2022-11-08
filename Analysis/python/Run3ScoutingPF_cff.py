@@ -129,6 +129,19 @@ def addAK8Jets(process):
        trkPhi_value_map = cms.InputTag("pfcands", "trkPhi"),
    )
 
+   process.AK8ParticleNetONNXJetTags = cms.EDProducer( "BoostedJetONNXJetTagsProducer",
+    src = cms.InputTag( "AK8ParticleNetJetTagInfos" ),
+    preprocess_json = cms.string( "RecoBTag/Combined/data/HLT/ParticleNetAK4/V00/preprocess-with-tauh.json" ),
+    preprocessParams = cms.PSet(  ),
+    model_path = cms.FileInPath( "RecoBTag/Combined/data/HLT/ParticleNetAK4/V00/particle-net-with-tauh.onnx" ),
+    flav_names = cms.vstring( 'probtauh',
+      'probb',
+      'probc',
+      'probuds',
+      'probg' ),
+    debugMode = cms.untracked.bool( False )
+)
+
    process.ak8MatchGenTable = cms.EDProducer("MatchJetToGenJetTableProducer",
        jets = cms.InputTag("ak8Jets"),
        genjets = cms.InputTag("slimmedAK8GenJets"),
