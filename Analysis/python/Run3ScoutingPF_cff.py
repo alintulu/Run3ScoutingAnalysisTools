@@ -5,16 +5,21 @@ def scoutingToReco(process):
 
    process.pfcands = cms.EDProducer(
      "Run3ScoutingToPFCandidateProducer",
-     #"Run3ScoutingToPackedCandidateProducer",
      scoutingparticle=cms.InputTag("hltScoutingPFPacker"),
-     #scoutingvertex=cms.InputTag("hltScoutingPrimaryVertexPacker", "primaryVtx"),
    )
 
    process.ak4Jets = cms.EDProducer(
      "Run3ScoutingToRecoJetProducer",
      scoutingjet=cms.InputTag("hltScoutingPFPacker"),
-     scoutingparticle=cms.InputTag("pfcands"),
+     recopfcand=cms.InputTag("pfcands"),
    )
+
+   process.recoTask = cms.Task(
+      process.pfcands,
+      process.ak4Jets,
+   )
+   process.schedule.associate(process.recoTask)
+
 
 def addParticles(process):
 
@@ -42,6 +47,9 @@ def addParticles(process):
        ),
    )
 
+   process.particleTask = cms.Task(process.particleTable)
+   process.schedule.associate(process.particleTask)
+
 def addAK4Jets(process):
 
    process.ak4JetTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
@@ -51,6 +59,10 @@ def addAK4Jets(process):
        doc = cms.string("ScoutingJet"),
        singleton = cms.bool(False),
        extension = cms.bool(False), # this is the main table
+       externalVariables = cms.PSet(
+          mass = ExtVar(cms.InputTag("ak4Jets", "mass"), float, doc="mass", precision=6),
+          area = ExtVar(cms.InputTag("ak4Jets", "jetArea"), float, doc="area", precision=6),
+       ),
        variables = cms.PSet(
           P3Vars,
           chHEF = Var("chargedHadronEnergy()/(chargedHadronEnergy()+neutralHadronEnergy()+photonEnergy()+electronEnergy()+muonEnergy())", float, doc="charged Hadron Energy Fraction", precision= 6),
@@ -73,6 +85,9 @@ def addAK4Jets(process):
        nameTable = cms.string("ScoutingJet"),
    )
 
+   process.ak4JetTask = cms.Task(process.ak4JetTable)
+   process.schedule.associate(process.ak4JetTask)
+
 def addAK8Jets(process):
 
    from RecoJets.JetProducers.ak8PFJets_cfi import ak8PFJets
@@ -85,12 +100,12 @@ def addAK8Jets(process):
       R0   = cms.double(0.8),
       useExplicitGhosts = cms.bool(True),
       writeCompound = cms.bool(True),
-      jetCollInstanceName=cms.string("SubJets"),
+      jetCollInstanceName=cms.string("SoftDrop"),
       jetPtMin = 170.0
    )
  
    process.ak8JetTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
-       src = cms.InputTag("ak8Jets", "SubJets"),
+       src = cms.InputTag("ak8Jets", "SoftDrop"),
        name = cms.string("ScoutingFatJet"),
        cut = cms.string(""),
        doc = cms.string("ScoutingFatJet"),
@@ -164,4 +179,14 @@ def addAK8Jets(process):
        jets = cms.InputTag("ak8Jets"),
        genjets = cms.InputTag("slimmedAK8GenJets"),
        nameTable = cms.string("ScoutingFatJet"),
-   ) 
+   )
+ 
+   process.ak8JetTask = cms.Task(
+       process.ak8Jets,
+       process.ak8JetTable,
+       process.pfParticleNetMassRegressionJetTagInfos,
+       process.pfParticleNetJetTags,
+       process.pfParticleNetDiscriminatorsJetTags,
+       process.pfParticleNetMassRegressionJetTags
+   )
+   process.schedule.associate(process.ak8JetTask)

@@ -14,3 +14,6 @@ def addScouting(process):
        metphi = cms.InputTag("hltScoutingPFPacker","pfMetPhi"),
        rho = cms.InputTag("hltScoutingPFPacker", "rho"),
    )
+
+   process.run3ScoutingTask = cms.Task(process.run3ScoutingTable)
+   process.schedule.associate(process.run3ScoutingTask)

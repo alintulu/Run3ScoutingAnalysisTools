@@ -1,4 +1,3 @@
-// system include files
 #include <memory>
 
 // user include files
@@ -57,10 +56,12 @@ private:
 //
 Run3ScoutingToRecoJetProducer::Run3ScoutingToRecoJetProducer(const edm::ParameterSet &iConfig)
     : input_scoutingjet_token_(consumes(iConfig.getParameter<edm::InputTag>("scoutingjet"))),
-      input_candidateview_token_(consumes(iConfig.getParameter<edm::InputTag>("scoutingparticle"))),
+      input_candidateview_token_(consumes(iConfig.getParameter<edm::InputTag>("recopfcand"))),
       debug_(iConfig.existsAs<bool>("debug") ? iConfig.getParameter<bool>("debug") : false) {
   //register products
-  produces<std::vector<reco::PFJet>>();
+  produces<reco::PFJetCollection>();
+  produces<edm::ValueMap<float>>("jetArea");
+  produces<edm::ValueMap<float>>("mass");
 }
 
 Run3ScoutingToRecoJetProducer::~Run3ScoutingToRecoJetProducer() = default;
@@ -87,7 +88,10 @@ void Run3ScoutingToRecoJetProducer::produce(edm::Event& iEvent, const edm::Event
   Handle<reco::CandidateView> candidateviewHandle;
   bool isView = iEvent.getByToken(input_candidateview_token_, candidateviewHandle);
 
-  auto pfjets = std::make_unique<std::vector<reco::PFJet>>(scoutingjetHandle->size());
+  std::vector<float> jetArea(scoutingjetHandle->size());
+  std::vector<float> mass(scoutingjetHandle->size());
+
+  auto pfjets = std::make_unique<reco::PFJetCollection>(scoutingjetHandle->size());
   for (unsigned int ijet = 0; ijet < scoutingjetHandle->size(); ++ijet) {
 
       auto& pfjet = dynamic_cast<reco::PFJet&>((*pfjets)[ijet]);
@@ -130,18 +134,33 @@ void Run3ScoutingToRecoJetProducer::produce(edm::Event& iEvent, const edm::Event
    
       pfjet = reco::PFJet(p4, vertex, specific, pfcands_);
 
+      jetArea[ijet] = scoutingjet.jetArea();
+      mass[ijet] = scoutingjet.m();
+
       if (debug_) print(scoutingjet, pfjet);
   }
 
   //put output
-  iEvent.put(std::move(pfjets));
+  edm::OrphanHandle<reco::PFJetCollection> oh = iEvent.put(std::move(pfjets));
+
+  std::unique_ptr<edm::ValueMap<float>> jetArea_VM(new edm::ValueMap<float>());
+  edm::ValueMap<float>::Filler filler_jetArea(*jetArea_VM);
+  filler_jetArea.insert(oh, jetArea.begin(), jetArea.end());
+  filler_jetArea.fill();
+  iEvent.put(std::move(jetArea_VM), "jetArea");
+
+  std::unique_ptr<edm::ValueMap<float>> mass_VM(new edm::ValueMap<float>());
+  edm::ValueMap<float>::Filler filler_mass(*mass_VM);
+  filler_mass.insert(oh, mass.begin(), mass.end());
+  filler_mass.fill();
+  iEvent.put(std::move(mass_VM), "mass");
 }
 
 // ------------ method fills 'descriptions' with the allowed parameters for the module  ------------
 void Run3ScoutingToRecoJetProducer::fillDescriptions(edm::ConfigurationDescriptions &descriptions) {
   edm::ParameterSetDescription desc;
   desc.add<edm::InputTag>("scoutingjet", edm::InputTag("hltScoutingPFPacker"));
-  desc.add<edm::InputTag>("scoutingparticle", edm::InputTag("hltScoutingPFPacker"));
+  desc.add<edm::InputTag>("recopfcand", edm::InputTag("pfcans"));
   descriptions.addWithDefaultLabel(desc);
 }
 

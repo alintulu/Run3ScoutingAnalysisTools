@@ -85,3 +85,10 @@ cmsDriver.py \
   -n 1 \
  --customise_commands "process.MINIAODSIMoutput.outputCommands.extend(['drop *_hlt*_*_*','keep *_hltScoutingEgammaPacker_*_*','keep *_hltScoutingMuonPacker_*_*','keep *_hltScoutingPFPacker_*_*','keep *_hltScoutingPrimaryVertexPacker_*_*','keep *_hltScoutingTrackPacker_*_*','drop *_*_*_PAT','keep *_*GenParticles_*_*','keep *_slimmedGenJets*_*_*', 'keep *_slimmedMET*_*_*'])"
 ```
+
+### Left to figure out
+
+- How to get softdrop mass from AK8 jets
+- How to use bDiscriminator with PF (not PAT) jets
+- Why PF jets does not take mass and area
+- How to add n2b1 to ak8 jets

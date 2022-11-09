@@ -140,10 +140,7 @@ void Run3ScoutingToPFCandidateProducer::produce(edm::StreamID sid, edm::Event & 
       if (debug_) print(scoutingparticle, pfcand);
   }
 
-  //ProductID const pidK0(1, 0);
-  //reco::PFCandidateCollection const *const_pfcands = &(*pfcands);
   edm::OrphanHandle<reco::PFCandidateCollection> oh = iEvent.put(std::move(pfcands));
-  //edm::OrphanHandle<reco::PFCandidateCollection> oh = iEvent.emplace(ptokenPFCandidates_, pfcands);
   
   std::unique_ptr<edm::ValueMap<int>> vertexIndex_VM(new edm::ValueMap<int>());
   edm::ValueMap<int>::Filler filler_vertexIndex(*vertexIndex_VM);
