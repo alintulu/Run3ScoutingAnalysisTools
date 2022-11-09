@@ -101,7 +101,7 @@ def addAK8Jets(process):
        ),
    )
 
-   process.AK8ParticleNetJetTagInfos = cms.EDProducer("DeepBoostedJetTagInfoScoutingProducer",
+   process.pfParticleNetMassRegressionJetTagInfos = cms.EDProducer("DeepBoostedJetTagInfoScoutingProducer",
        jet_radius = cms.double( 0.8 ),
        min_jet_pt = cms.double( 170.0 ),
        max_jet_eta = cms.double( 2.5 ),
@@ -129,18 +129,36 @@ def addAK8Jets(process):
        trkPhi_value_map = cms.InputTag("pfcands", "trkPhi"),
    )
 
-   process.AK8ParticleNetONNXJetTags = cms.EDProducer( "BoostedJetONNXJetTagsProducer",
-    src = cms.InputTag( "AK8ParticleNetJetTagInfos" ),
-    preprocess_json = cms.string( "RecoBTag/Combined/data/HLT/ParticleNetAK4/V00/preprocess-with-tauh.json" ),
-    preprocessParams = cms.PSet(  ),
-    model_path = cms.FileInPath( "RecoBTag/Combined/data/HLT/ParticleNetAK4/V00/particle-net-with-tauh.onnx" ),
-    flav_names = cms.vstring( 'probtauh',
-      'probb',
-      'probc',
-      'probuds',
-      'probg' ),
-    debugMode = cms.untracked.bool( False )
-)
+   from RecoBTag.ONNXRuntime.boostedJetONNXJetTagsProducer_cfi import boostedJetONNXJetTagsProducer
+
+   process.pfParticleNetJetTags = boostedJetONNXJetTagsProducer.clone(
+       src = cms.InputTag("pfParticleNetMassRegressionJetTagInfos"),
+       preprocess_json = cms.string("Run3ScoutingAnalysisTools/Models/preprocess_doublebtag.json"),
+       model_path = cms.FileInPath("Run3ScoutingAnalysisTools/Models/doublebtag.onnx"),
+       flav_names = ["probHbb", "probHcc","probHqq", "probQCDall"],
+       debugMode = cms.untracked.bool(True),
+   )
+
+   process.pfParticleNetDiscriminatorsJetTags = cms.EDProducer("BTagProbabilityToDiscriminator",
+       discriminators = cms.VPSet(
+           cms.PSet(name = cms.string("HbbVsQCD"),
+             numerator = cms.VInputTag('pfParticleNetMassRegressionJetTagInfos:probHbb'),
+             denominator = cms.VInputTag('pfParticleNetMassRegressionJetTagInfos:probHbb','pfParticleNetMassRegressionJetTagInfos:probQCDall')
+           ),
+       )
+   )
+
+   setattr(process.ak8JetTable.variables, "ParticleNetHbbvsQCD", Var("bDiscriminator('pfParticleNetDiscriminatorsJetTags:HbbVsQCD')", float, doc="ParticleNet tagger H(->bb) vs QCD discriminator", precision=10),)
+
+   process.pfParticleNetMassRegressionJetTags = boostedJetONNXJetTagsProducer.clone(
+       src = cms.InputTag("pfParticleNetMassRegressionJetTagInfos"),
+       preprocess_json = cms.string("Run3ScoutingAnalysisTools/Models/preprocess_massreg.json"),
+       model_path = cms.FileInPath("Run3ScoutingAnalysisTools/Models/massreg.onnx"),
+       flav_names = cms.vstring( ["mass"]),
+       debugMode = cms.untracked.bool(True),
+   )
+
+   setattr(process.ak8JetTable.variables, "ParticleNetMass",  Var("bDiscriminator('pfParticleNetMassRegressionJetTags:mass')", float, doc="ParticleNet mass regression",precision=10))
 
    process.ak8MatchGenTable = cms.EDProducer("MatchJetToGenJetTableProducer",
        jets = cms.InputTag("ak8Jets"),
