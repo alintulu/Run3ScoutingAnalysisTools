@@ -31,13 +31,13 @@ def addParticles(process):
        singleton = cms.bool(False),
        extension = cms.bool(False), # this is the main table
        externalVariables = cms.PSet(
-          normchi2 = ExtVar(cms.InputTag("pfcands", "normchi2"), float, doc="normchi2 of best track", precision=6),
-          dz = ExtVar(cms.InputTag("pfcands", "dz"), float, doc="dz of best track", precision=6),
-          dxy = ExtVar(cms.InputTag("pfcands", "dxy"), float, doc="dxy of best track", precision=6),
-          dzsig = ExtVar(cms.InputTag("pfcands", "dzsig"), float, doc="dzsig of best track", precision=6),
-          dxysig = ExtVar(cms.InputTag("pfcands", "dxysig"), float, doc="dxysig of best track", precision=6),
-          lostInnerHits = ExtVar(cms.InputTag("pfcands", "lostInnerHits"), int, doc="lostInnerHits of best track"),
-          quality = ExtVar(cms.InputTag("pfcands", "quality"), int, doc="quality of best track"),
+          trkNormchi2 = ExtVar(cms.InputTag("pfcands", "normchi2"), float, doc="normchi2 of best track", precision=6),
+          trkDz = ExtVar(cms.InputTag("pfcands", "dz"), float, doc="dz of best track", precision=6),
+          trkDxy = ExtVar(cms.InputTag("pfcands", "dxy"), float, doc="dxy of best track", precision=6),
+          trkDzsig = ExtVar(cms.InputTag("pfcands", "dzsig"), float, doc="dzsig of best track", precision=6),
+          trkDxysig = ExtVar(cms.InputTag("pfcands", "dxysig"), float, doc="dxysig of best track", precision=6),
+          trkLostInnerHits = ExtVar(cms.InputTag("pfcands", "lostInnerHits"), int, doc="lostInnerHits of best track"),
+          trkQuality = ExtVar(cms.InputTag("pfcands", "quality"), int, doc="quality of best track"),
           trkPt = ExtVar(cms.InputTag("pfcands", "trkPt"), float, doc="pt of best track", precision=6),
           trkEta = ExtVar(cms.InputTag("pfcands", "trkEta"), float, doc="eta of best track", precision=6),
           trkPhi = ExtVar(cms.InputTag("pfcands", "trkPhi"), float, doc="phi of best track", precision=6),
@@ -100,12 +100,12 @@ def addAK8Jets(process):
       R0   = cms.double(0.8),
       useExplicitGhosts = cms.bool(True),
       writeCompound = cms.bool(True),
-      jetCollInstanceName=cms.string("SubJets"),
+      jetCollInstanceName=cms.string("SoftDrop"),
       jetPtMin = 170.0
    )
  
    process.ak8JetTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
-       src = cms.InputTag("ak8Jets", "SubJets"),
+       src = cms.InputTag("ak8Jets", "SoftDrop"),
        name = cms.string("ScoutingFatJet"),
        cut = cms.string(""),
        doc = cms.string("ScoutingFatJet"),
@@ -185,9 +185,9 @@ def addAK8Jets(process):
    process.ak8JetTask = cms.Task(
        process.ak8Jets,
        process.ak8JetTable,
-       process.pfParticleNetMassRegressionJetTagInfos,
-       process.pfParticleNetJetTags,
-       process.pfParticleNetDiscriminatorsJetTags,
-       process.pfParticleNetMassRegressionJetTags
+       #process.pfParticleNetMassRegressionJetTagInfos,
+       #process.pfParticleNetJetTags,
+       #process.pfParticleNetDiscriminatorsJetTags,
+       #process.pfParticleNetMassRegressionJetTags
    )
    process.schedule.associate(process.ak8JetTask)

@@ -19,7 +19,7 @@ def addScouting(process):
             hOverE = Var('hOverE', 'float', precision=14, doc='hOverE'),
             ecalIso = Var('ecalIso', 'float', precision=14, doc='ecalIso'),
             hcalIso = Var('hcalIso', 'float', precision=14, doc='hcalIso'),
-            trkIso = Var('trkIso', 'float', precision=14, doc='trkIso'),
+            trackIso = Var('trkIso', 'float', precision=14, doc='trackIso'),
             r9 = Var('r9', 'float', precision=14, doc='r9'),
             sMin = Var('sMin', 'float', precision=14, doc='sMin'),
             sMaj = Var('sMaj', 'float', precision=14, doc='sMaj'),
@@ -45,12 +45,12 @@ def addScouting(process):
             dPhiIn = Var('dPhiIn', 'float', precision=14, doc='dPhiIn'),
             sigmaIetaIeta = Var('sigmaIetaIeta', 'float', precision=14, doc='sigmaIetaIeta'),
             hOverE = Var('hOverE', 'float', precision=14, doc='hOverE'),
-            ooEMOOp = Var('ooEMOOp', 'float', precision=14, doc='ooEMOOp'),
+            ooEMOop = Var('ooEMOop', 'float', precision=14, doc='ooEMOop'),
             missingHits = Var('missingHits', 'int', doc='missingHits'),
             charge = Var('charge', 'int', doc='charge'),
             ecalIso = Var('ecalIso', 'float', precision=14, doc='ecalIso'),
             hcalIso = Var('hcalIso', 'float', precision=14, doc='hcalIso'),
-            trkIso = Var('trkIso', 'float', precision=14, doc='trkIso'),
+            trackIso = Var('trackIso', 'float', precision=14, doc='trackIso'),
             r9 = Var('r9', 'float', precision=14, doc='r9'),
             sMin = Var('sMin', 'float', precision=14, doc='sMin'),
             sMaj = Var('sMaj', 'float', precision=14, doc='sMaj'),
@@ -140,10 +140,9 @@ def addScouting(process):
             dz = Var('tk_dz', 'float', precision=14, doc='dz'),
             nValidPixelHits = Var('tk_nValidPixelHits', 'int', doc='nValidPixelHits'),
             nValidStripHits = Var('tk_nValidStripHits', 'int', doc='nValidStripHits'),
-            nPixelLayersWithMeasurement = Var('nPixelLayersWithMeasurement', 'int', doc='nPixelLayersWithMeasurement'),
-            nTrackerLayersWithMeasurement = Var('nTrackerLayersWithMeasurement', 'int', doc='nTrackerLayersWithMeasurement'),
+            nTrackerLayersWithMeasurement = Var('tk_nTrackerLayersWithMeasurement', 'int', doc='nTrackerLayersWithMeasurement'),
             qoverp = Var('tk_qoverp', 'float', precision=14, doc='qoverp'),
-            lambda = Var('tk_lambda', 'float', precision=14, doc='lambda'),
+            _lambda = Var('tk_lambda', 'float', precision=14, doc='lambda'),
             dxyError = Var('tk_dxy_Error', 'float', precision=14, doc='dxyError'),
             dzError = Var('tk_dz_Error', 'float', precision=14, doc='dzError'),
             qoverpError = Var('tk_qoverp_Error', 'float', precision=14, doc='qoverpError'),
@@ -169,7 +168,7 @@ def addScouting(process):
    )
 
    process.primaryvertexScoutingTable = cms.EDProducer("SimpleRun3ScoutingVertexFlatTableProducer",
-        src = cms.Input("hltScoutingPrimaryVertexPacker", "primaryVtx"),
+        src = cms.InputTag("hltScoutingPrimaryVertexPacker", "primaryVtx"),
         cut = cms.string(""),
         name = cms.string("ScoutingPrimaryVertex"),
         doc  = cms.string("PrimaryVertex Scouting Informations"),
@@ -190,7 +189,7 @@ def addScouting(process):
    )
 
    process.displacedvertexScoutingTable = cms.EDProducer("SimpleRun3ScoutingVertexFlatTableProducer",
-        src = cms.Input("hltScoutingMuonPacker","displacedVtx"),
+        src = cms.InputTag("hltScoutingMuonPacker","displacedVtx"),
         cut = cms.string(""),
         name = cms.string("ScoutingDisplacedVertex"),
         doc  = cms.string("DisplacedVertex Scouting Informations"),
@@ -210,26 +209,30 @@ def addScouting(process):
         )
    )
 
+   process.rhoScoutingTable = cms.EDProducer("GlobalVariablesTableProducer",
+       name = cms.string(""),
+       variables = cms.PSet(
+           ScoutingRho = ExtVar( cms.InputTag("hltScoutingPFPacker", "rho"), "double", doc = "rho from all PF Candidates, no foreground removal (for isolation of prompt photons)" ),
+       )
+   )
+
+   process.metScoutingTable = cms.EDProducer("GlobalVariablesTableProducer",
+       name = cms.string("ScoutingMET"),
+       variables = cms.PSet(
+           pt = ExtVar( cms.InputTag("hltScoutingPFPacker", "pfMetPt"), "double", doc = "Scouting MET pt"),
+           phi = ExtVar( cms.InputTag("hltScoutingPFPacker", "pfMetPhi"), "double", doc = "Scouting MET phi"),
+       )
+   )
+
    process.run3ScoutingTask = cms.Task(
        process.photonScoutingTable,
        process.electronScoutingTable,
        process.muonScoutingTable,
+       process.trackScoutingTable,
+       process.primaryvertexScoutingTable,
+       process.displacedvertexScoutingTable,
+       process.rhoScoutingTable,
+       process.metScoutingTable,
    )
-   process.schedule.associate(process.run3ScoutingTask)
 
-#def addScouting(process):
-#
-#   process.run3ScoutingTable = cms.EDProducer("Run3ScoutingTableProducer",
-#       primaryvertex = cms.InputTag("hltScoutingPrimaryVertexPacker", "primaryVtx"),
-#       displacedvertex = cms.InputTag("hltScoutingMuonPacker","displacedVtx"),
-#       photon = cms.InputTag("hltScoutingEgammaPacker"),
-#       muon = cms.InputTag("hltScoutingMuonPacker"),
-#       electron = cms.InputTag("hltScoutingEgammaPacker"),
-#       track = cms.InputTag("hltScoutingTrackPacker"),
-#       metpt = cms.InputTag("hltScoutingPFPacker","pfMetPt"),
-#       metphi = cms.InputTag("hltScoutingPFPacker","pfMetPhi"),
-#       rho = cms.InputTag("hltScoutingPFPacker", "rho"),
-#   )
-#
-#   process.run3ScoutingTask = cms.Task(process.run3ScoutingTable)
-#   process.schedule.associate(process.run3ScoutingTask)
+   process.schedule.associate(process.run3ScoutingTask)
