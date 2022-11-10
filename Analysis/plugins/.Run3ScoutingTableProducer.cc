@@ -52,7 +52,7 @@ Run3ScoutingTableProducer::Run3ScoutingTableProducer(const edm::ParameterSet &iC
       input_metpt_token_(consumes<double>(iConfig.getParameter<edm::InputTag>("metpt"))),
       input_metphi_token_ (consumes<double>(iConfig.getParameter<edm::InputTag>("metphi"))),
       input_rho_token_ (consumes<double>(iConfig.getParameter<edm::InputTag>("rho"))) {
-  produces<nanoaod::FlatTable>("ScoutingPrimaryVertex");
+ // produces<nanoaod::FlatTable>("ScoutingPrimaryVertex");
   produces<nanoaod::FlatTable>("ScoutingDisplacedVertex");
   produces<nanoaod::FlatTable>("ScoutingPhoton");
   produces<nanoaod::FlatTable>("ScoutingMuon");
@@ -66,40 +66,40 @@ Run3ScoutingTableProducer::~Run3ScoutingTableProducer() {}
 
 void Run3ScoutingTableProducer::produce(edm::Event &iEvent, const edm::EventSetup &iSetup) {
   
-  auto vertex = iEvent.getHandle(input_primaryvertex_token_);
-  std::vector<float> vertex_x;
-  std::vector<float> vertex_y;
-  std::vector<float> vertex_z;
-  std::vector<float> vertex_xError;
-  std::vector<float> vertex_yError;
-  std::vector<float> vertex_zError;
-  std::vector<int> vertex_tracksSize;
-  std::vector<float> vertex_chi2;
-  std::vector<bool> vertex_isValidVtx;
+  //auto vertex = iEvent.getHandle(input_primaryvertex_token_);
+  //std::vector<float> vertex_x;
+  //std::vector<float> vertex_y;
+  //std::vector<float> vertex_z;
+  //std::vector<float> vertex_xError;
+  //std::vector<float> vertex_yError;
+  //std::vector<float> vertex_zError;
+  //std::vector<int> vertex_tracksSize;
+  //std::vector<float> vertex_chi2;
+  //std::vector<bool> vertex_isValidVtx;
 
-  for (unsigned i = 0; i < vertex->size(); ++i) {
-     vertex_x.push_back((*vertex)[i].x());
-     vertex_y.push_back((*vertex)[i].y());
-     vertex_z.push_back((*vertex)[i].z());
-     vertex_xError.push_back((*vertex)[i].xError());
-     vertex_yError.push_back((*vertex)[i].yError());
-     vertex_zError.push_back((*vertex)[i].zError());
-     vertex_tracksSize.push_back((*vertex)[i].tracksSize());
-     vertex_chi2.push_back((*vertex)[i].chi2());
-     vertex_isValidVtx.push_back((*vertex)[i].isValidVtx());
-  }
+  //for (unsigned i = 0; i < vertex->size(); ++i) {
+  //   vertex_x.push_back((*vertex)[i].x());
+  //   vertex_y.push_back((*vertex)[i].y());
+  //   vertex_z.push_back((*vertex)[i].z());
+  //   vertex_xError.push_back((*vertex)[i].xError());
+  //   vertex_yError.push_back((*vertex)[i].yError());
+  //   vertex_zError.push_back((*vertex)[i].zError());
+  //   vertex_tracksSize.push_back((*vertex)[i].tracksSize());
+  //   vertex_chi2.push_back((*vertex)[i].chi2());
+  //   vertex_isValidVtx.push_back((*vertex)[i].isValidVtx());
+  //}
       
-  auto vertexTable = std::make_unique<nanoaod::FlatTable>(vertex->size(), "ScoutingPrimaryVertex", false, false);
-  vertexTable->setDoc("PFScouting primary vertex, i.e. hltPixelVertices");
-  vertexTable->addColumn<float>("x", vertex_x, "vertex x");
-  vertexTable->addColumn<float>("y", vertex_y, "vertex y");
-  vertexTable->addColumn<float>("z", vertex_z, "vertex z");
-  vertexTable->addColumn<float>("xError", vertex_xError, "vertex x error");
-  vertexTable->addColumn<float>("yError", vertex_yError, "vertex y error");
-  vertexTable->addColumn<float>("zError", vertex_zError, "vertex z error");
-  vertexTable->addColumn<float>("tracksSize", vertex_tracksSize, "track size");
-  vertexTable->addColumn<float>("chi2", vertex_chi2, "vertex chi2");
-  vertexTable->addColumn<float>("isValidVertex", vertex_isValidVtx, "boolean if vertex is valid");
+  //auto vertexTable = std::make_unique<nanoaod::FlatTable>(vertex->size(), "ScoutingPrimaryVertex", false, false);
+  //vertexTable->setDoc("PFScouting primary vertex, i.e. hltPixelVertices");
+  //vertexTable->addColumn<float>("x", vertex_x, "vertex x");
+  //vertexTable->addColumn<float>("y", vertex_y, "vertex y");
+  //vertexTable->addColumn<float>("z", vertex_z, "vertex z");
+  //vertexTable->addColumn<float>("xError", vertex_xError, "vertex x error");
+  //vertexTable->addColumn<float>("yError", vertex_yError, "vertex y error");
+  //vertexTable->addColumn<float>("zError", vertex_zError, "vertex z error");
+  //vertexTable->addColumn<float>("tracksSize", vertex_tracksSize, "track size");
+  //vertexTable->addColumn<float>("chi2", vertex_chi2, "vertex chi2");
+  //vertexTable->addColumn<float>("isValidVertex", vertex_isValidVtx, "boolean if vertex is valid");
 
   auto dispvertex = iEvent.getHandle(input_displacedvertex_token_);
   std::vector<float> dispvertex_x;
@@ -547,7 +547,7 @@ void Run3ScoutingTableProducer::produce(edm::Event &iEvent, const edm::EventSetu
   rhoTable->setDoc("PFScouting rho, i.e. hltFixedGridRhoFastjetPixelOnlyAll");
   rhoTable->addColumnValue<double>("", *iEvent.getHandle(input_rho_token_), "rho");
   
-  iEvent.put(std::move(vertexTable), "ScoutingPrimaryVertex");
+  //iEvent.put(std::move(vertexTable), "ScoutingPrimaryVertex");
   iEvent.put(std::move(dispvertexTable), "ScoutingDisplacedVertex");
   iEvent.put(std::move(photonTable), "ScoutingPhoton");
   iEvent.put(std::move(muonTable), "ScoutingMuon");

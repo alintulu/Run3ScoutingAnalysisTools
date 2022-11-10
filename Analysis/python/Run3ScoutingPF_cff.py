@@ -100,12 +100,12 @@ def addAK8Jets(process):
       R0   = cms.double(0.8),
       useExplicitGhosts = cms.bool(True),
       writeCompound = cms.bool(True),
-      jetCollInstanceName=cms.string("SoftDrop"),
+      jetCollInstanceName=cms.string("SubJets"),
       jetPtMin = 170.0
    )
  
    process.ak8JetTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
-       src = cms.InputTag("ak8Jets", "SoftDrop"),
+       src = cms.InputTag("ak8Jets", "SubJets"),
        name = cms.string("ScoutingFatJet"),
        cut = cms.string(""),
        doc = cms.string("ScoutingFatJet"),
@@ -163,7 +163,8 @@ def addAK8Jets(process):
        )
    )
 
-   setattr(process.ak8JetTable.variables, "ParticleNetHbbvsQCD", Var("bDiscriminator('pfParticleNetDiscriminatorsJetTags:HbbVsQCD')", float, doc="ParticleNet tagger H(->bb) vs QCD discriminator", precision=10),)
+   #setattr(process.ak8JetTable.variables, "ParticleNetHbbvsQCD", Var("bDiscriminator('pfParticleNetDiscriminatorsJetTags:HbbVsQCD')", float, doc="ParticleNet tagger H(->bb) vs QCD discriminator", precision=10),)
+   #setattr(process.ak8JetTable.variables, "ParticleNetHbbvsQCD", Var(cms.InputTag("pfParticleNetDiscriminatorsJetTags:HbbVsQCD"), float, doc="ParticleNet tagger H(->bb) vs QCD discriminator", precision=10),)
 
    process.pfParticleNetMassRegressionJetTags = boostedJetONNXJetTagsProducer.clone(
        src = cms.InputTag("pfParticleNetMassRegressionJetTagInfos"),
@@ -173,7 +174,7 @@ def addAK8Jets(process):
        debugMode = cms.untracked.bool(True),
    )
 
-   setattr(process.ak8JetTable.variables, "ParticleNetMass",  Var("bDiscriminator('pfParticleNetMassRegressionJetTags:mass')", float, doc="ParticleNet mass regression",precision=10))
+   #setattr(process.ak8JetTable.variables, "ParticleNetMass",  Var("bDiscriminator('pfParticleNetMassRegressionJetTags:mass')", float, doc="ParticleNet mass regression",precision=10))
 
    process.ak8MatchGenTable = cms.EDProducer("MatchJetToGenJetTableProducer",
        jets = cms.InputTag("ak8Jets"),
