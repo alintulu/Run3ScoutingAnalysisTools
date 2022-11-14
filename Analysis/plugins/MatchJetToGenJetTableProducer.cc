@@ -13,6 +13,7 @@
 
 #include "DataFormats/JetReco/interface/PFJet.h"
 #include "DataFormats/JetReco/interface/GenJet.h"
+#include "DataFormats/PatCandidates/interface/Jet.h"
 #include "DataFormats/Math/interface/deltaR.h"
 
 class MatchJetToGenJetTableProducer : public edm::stream::EDProducer<> {
@@ -26,7 +27,7 @@ private:
   void produce(edm::Event &, const edm::EventSetup &) override;
     
   const std::string nameTable_;
-  const edm::EDGetTokenT<std::vector<reco::PFJet>> input_scoutingjet_token_;
+  const edm::EDGetTokenT<edm::View<reco::Jet>> input_scoutingjet_token_;
   const edm::EDGetTokenT<std::vector<reco::GenJet>> input_genjet_token_;
   
 };
@@ -44,11 +45,6 @@ MatchJetToGenJetTableProducer::MatchJetToGenJetTableProducer(const edm::Paramete
 MatchJetToGenJetTableProducer::~MatchJetToGenJetTableProducer() {}
 
 void MatchJetToGenJetTableProducer::produce(edm::Event &iEvent, const edm::EventSetup &iSetup) {
-  // elements in all these collections must have the same order!
-    
-  // only necessary to explicitly check correct matching of jets
-  // std::vector<int> jetIdx_dj;
-  
   auto jets = iEvent.getHandle(input_scoutingjet_token_);
   auto genjets = iEvent.getHandle(input_genjet_token_);
 

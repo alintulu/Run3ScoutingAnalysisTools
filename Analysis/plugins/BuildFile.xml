@@ -17,4 +17,7 @@
 <use name="SimGeneral/HepPDTRecord"/>
 <use name="DataFormats/NanoAOD"/>
 <use name="DataFormats/BTauReco"/>
+<use name="RecoBTag/FeatureTools"/>
+<use name="RecoBTag/ONNXRuntime"/>
+<use name="PhysicsTools/ONNXRuntime"/>
 <flags EDM_PLUGIN="1"/>
