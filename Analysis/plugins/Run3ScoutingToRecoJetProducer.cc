@@ -134,6 +134,8 @@ void Run3ScoutingToRecoJetProducer::produce(edm::Event& iEvent, const edm::Event
    
       pfjet = reco::PFJet(p4, vertex, specific, pfcands_);
 
+      pfjet.setJetArea(scoutingjet.jetArea());
+
       jetArea[ijet] = scoutingjet.jetArea();
       mass[ijet] = scoutingjet.m();
 

@@ -98,12 +98,11 @@ def addAK4Jets(process, isMC):
        singleton = cms.bool(False),
        extension = cms.bool(False), # this is the main table
        externalVariables = cms.PSet(
-          mass = ExtVar(cms.InputTag("ak4Jets", "mass"), float, doc="mass", precision=6),
-          area = ExtVar(cms.InputTag("ak4Jets", "jetArea"), float, doc="area", precision=6),
           ParticleNet_Probb = ExtVar(cms.InputTag('ak4ParticleNetJetTags:probb'), float, doc="ParticleNet prob b", precision=10),
        ),
        variables = cms.PSet(
-          P3Vars,
+          P4Vars,
+          area = Var("jetArea()", float, doc="jet catchment area, for JECs",precision=10),
           chHEF = Var("chargedHadronEnergy()/(chargedHadronEnergy()+neutralHadronEnergy()+photonEnergy()+electronEnergy()+muonEnergy())", float, doc="charged Hadron Energy Fraction", precision= 6),
           neHEF = Var("neutralHadronEnergy()/(chargedHadronEnergy()+neutralHadronEnergy()+photonEnergy()+electronEnergy()+muonEnergy())", float, doc="neutral Hadron Energy Fraction", precision= 6),
           chEmEF = Var("(electronEnergy()+muonEnergy())/(chargedHadronEnergy()+neutralHadronEnergy()+photonEnergy()+electronEnergy()+muonEnergy())", float, doc="charged Electromagnetic Energy Fraction", precision= 6),
@@ -124,22 +123,30 @@ def addAK4Jets(process, isMC):
       process.ak4JetTable,
    )
 
+   process.schedule.associate(process.ak4JetTask)
+
    if (isMC):
       process.ak4MatchGenTable = cms.EDProducer("MatchJetToGenJetTableProducer",
           jets = cms.InputTag("ak4Jets"),
           genjets = cms.InputTag("slimmedGenJets"),
           nameTable = cms.string("ScoutingJet"),
       )
-      process.ak4JetTask.extend(process.ak4MatchGenTable)
-
-   process.schedule.associate(process.ak4JetTask)
+      process.ak4MatchGenTableTask = cms.Task(process.ak4MatchGenTable)
+      process.schedule.associate(process.ak4MatchGenTableTask)
 
 def addAK8Jets(process, isMC):
 
-   from RecoJets.JetProducers.ak8PFJets_cfi import ak8PFJets
-
-   process.ak8Jets = ak8PFJets.clone(
+   from RecoJets.JetProducers.ak4PFJets_cfi import ak4PFJets
+   process.ak8Jets = ak4PFJets.clone(
       src = ("pfcands"),
+      rParam   = 0.8,
+      jetPtMin = 50.0,
+   )
+
+   process.ak8JetsSoftDrop = ak4PFJets.clone(
+      src = ("pfcands"),
+      rParam   = 0.8,
+      jetPtMin = 50.0,
       useSoftDrop = cms.bool(True),
       zcut = cms.double(0.1),
       beta = cms.double(0.0),
@@ -147,7 +154,13 @@ def addAK8Jets(process, isMC):
       useExplicitGhosts = cms.bool(True),
       writeCompound = cms.bool(True),
       jetCollInstanceName=cms.string("SubJets"),
-      jetPtMin = 50.0
+   )
+
+   process.ak8JetsSoftDropMass = cms.EDProducer("RecoJetDeltaRValueMapProducer",
+      src = cms.InputTag("ak8Jets"),
+      matched = cms.InputTag("ak8JetsSoftDrop"),                                         
+      distMax = cms.double(0.8),
+      value = cms.string('mass')  
    )
 
    from RecoJets.JetProducers.ECF_cff import ecfNbeta1
@@ -211,6 +224,7 @@ def addAK8Jets(process, isMC):
        singleton = cms.bool(False),
        extension = cms.bool(False), # this is the main table
        externalVariables = cms.PSet(
+          msoftdrop = ExtVar(cms.InputTag('ak8JetsSoftDropMass'), float, doc="Softdrop mass", precision=10),
           n2b1 = ExtVar(cms.InputTag('ecfNbeta1:ecfN2'), float, doc="N2 with beta=1", precision=10),
           n3b1 = ExtVar(cms.InputTag('ecfNbeta1:ecfN3'), float, doc="N3 with beta=1", precision=10),
           tau1 = ExtVar(cms.InputTag('Njettiness:tau1'), float, doc="Nsubjettiness (1 axis)", precision=10),
@@ -223,6 +237,18 @@ def addAK8Jets(process, isMC):
        ),
        variables = cms.PSet(
           P4Vars,
+          area = Var("jetArea()", float, doc="jet catchment area, for JECs",precision=10),
+          chHEF = Var("chargedHadronEnergy()/(chargedHadronEnergy()+neutralHadronEnergy()+photonEnergy()+electronEnergy()+muonEnergy())", float, doc="charged Hadron Energy Fraction", precision= 6),
+          neHEF = Var("neutralHadronEnergy()/(chargedHadronEnergy()+neutralHadronEnergy()+photonEnergy()+electronEnergy()+muonEnergy())", float, doc="neutral Hadron Energy Fraction", precision= 6),
+          chEmEF = Var("(electronEnergy()+muonEnergy())/(chargedHadronEnergy()+neutralHadronEnergy()+photonEnergy()+electronEnergy()+muonEnergy())", float, doc="charged Electromagnetic Energy Fraction", precision= 6),
+          neEmEF = Var("(photonEnergy())/(chargedHadronEnergy()+neutralHadronEnergy()+photonEnergy()+electronEnergy()+muonEnergy())", float, doc="neutral Electromagnetic Energy Fraction", precision= 6),
+          muEmEF = Var("(muonEnergy())/(chargedHadronEnergy()+neutralHadronEnergy()+photonEnergy()+electronEnergy()+muonEnergy())", float, doc="muon Energy Fraction", precision= 6),
+          nCh = Var("chargedHadronMultiplicity()", int, doc="number of charged hadrons in the jet"),
+          nNh = Var("neutralHadronMultiplicity()", int, doc="number of neutral hadrons in the jet"),
+          nMuons = Var("muonMultiplicity()", int, doc="number of muons in the jet"),
+          nElectrons = Var("electronMultiplicity()", int, doc="number of electrons in the jet"),
+          nPhotons = Var("photonMultiplicity()", int, doc="number of photons in the jet"),
+          nConstituents = Var("numberOfDaughters()", "uint8", doc="Number of particles in the jet")
        ),
    )
 
@@ -234,6 +260,8 @@ def addAK8Jets(process, isMC):
  
    process.ak8JetTask = cms.Task(
        process.ak8Jets,
+       process.ak8JetsSoftDrop,
+       process.ak8JetsSoftDropMass,
        process.ecfNbeta1,
        process.Njettiness,
        process.ak8ParticleNetJetTagInfos,
@@ -242,12 +270,23 @@ def addAK8Jets(process, isMC):
        process.ak8JetTable,
    )
 
-   if (isMC):
-      process.ak8MatchGenTable = cms.EDProducer("MatchJetToGenJetTableProducer",
-          jets = cms.InputTag("ak8Jets"),
-          genjets = cms.InputTag("slimmedAK8GenJets"),
-          nameTable = cms.string("ScoutingFatJet"),
-      )
-      process.ak8JetTask.extend(process.ak8MatchGenTable)
-
    process.schedule.associate(process.ak8JetTask)
+
+   if (isMC):
+      #process.ak8MatchGenTable = cms.EDProducer("MatchJetToGenJetTableProducer",
+      #    jets = cms.InputTag("ak8Jets"),
+      #    genjets = cms.InputTag("slimmedAK8GenJets"),
+      #    nameTable = cms.string("ScoutingFatJet"),
+      #)
+      process.ak8MatchGen = cms.EDProducer("RecoJetToGenJetDeltaRValueMapProducer2",
+          src = cms.InputTag("ak8Jets"),
+          matched = cms.InputTag("slimmedGenJetsAK8"),
+          distMax = cms.double(0.8),
+          value = cms.string("index"),
+      )
+      process.ak8MatchGenTask = cms.Task(process.ak8MatchGen)
+      externalVariables = getattr(process.ak8JetTable, 'externalVariables', cms.PSet())
+      externalVariables.genJetAK8Idx = ExtVar(cms.InputTag("ak8MatchGen"), int, doc="gen jet idx")
+      process.ak8JetTable.externalVariables = externalVariables
+      process.schedule.associate(process.ak8MatchGenTask)
+
