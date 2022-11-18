@@ -30,7 +30,8 @@
         "pad": 0
       }
     },
-    "var_length": 100
+    "min_length": 16,
+    "max_length": 100
   },
   "pf_features": {
     "var_names": [
@@ -226,7 +227,8 @@
         "pad": 0
       }
     },
-    "var_length": 100
+    "min_length": 16,
+    "max_length": 100
   },
   "pf_mask": {
     "var_names": [
@@ -242,6 +244,7 @@
         "pad": 0
       }
     },
-    "var_length": 100
+    "min_length": 16,
+    "max_length": 100
   }
 }

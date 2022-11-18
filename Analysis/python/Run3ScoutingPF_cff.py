@@ -52,9 +52,9 @@ def addParticles(process):
 
 def addAK4Jets(process, isMC):
 
-   process.ak4ParticleNetJetTagInfos = cms.EDProducer("DeepBoostedJetTagInfoScoutingProducer",
-       jet_radius = cms.double( 0.8 ),
-       min_jet_pt = cms.double( 170.0 ),
+   process.ak4ParticleNetJetTagInfos = cms.EDProducer("DeepBoostedJetTagInfoProducer",
+       jet_radius = cms.double( 0.4 ),
+       min_jet_pt = cms.double( 5.0 ),
        max_jet_eta = cms.double( 2.5 ),
        min_pt_for_track_properties = cms.double( 0.95 ),
        min_pt_for_pfcandidates = cms.double( 0.1 ),
@@ -68,6 +68,7 @@ def addAK4Jets(process, isMC):
        pf_candidates = cms.InputTag( "pfcands" ),
        jets = cms.InputTag( "ak4Jets" ),
        puppi_value_map = cms.InputTag( "" ),
+       use_scouting_features = cms.bool( True ),
        normchi2_value_map = cms.InputTag("pfcands", "normchi2"),
        dz_value_map = cms.InputTag("pfcands", "dz"),
        dxy_value_map = cms.InputTag("pfcands", "dxy"),
@@ -81,7 +82,7 @@ def addAK4Jets(process, isMC):
    )
 
    from RecoBTag.ONNXRuntime.boostedJetONNXJetTagsProducer_cfi import boostedJetONNXJetTagsProducer
-   process.ak4ParticleNetJetTags = cms.EDProducer("BoostedJetONNXJetTagsScoutingProducer",
+   process.ak4ParticleNetJetTags = cms.EDProducer("BoostedJetONNXValueMapProducer",
        jets = cms.InputTag("ak4Jets"),
        src = cms.InputTag("ak4ParticleNetJetTagInfos"),
        preprocess_json = cms.string("Run3ScoutingAnalysisTools/Models/preprocess_flavourtag.json"),
@@ -97,9 +98,9 @@ def addAK4Jets(process, isMC):
        doc = cms.string("ScoutingJet"),
        singleton = cms.bool(False),
        extension = cms.bool(False), # this is the main table
-       externalVariables = cms.PSet(
-          ParticleNet_Probb = ExtVar(cms.InputTag('ak4ParticleNetJetTags:probb'), float, doc="ParticleNet prob b", precision=10),
-       ),
+       #externalVariables = cms.PSet(
+       #   ParticleNet_Probb = ExtVar(cms.InputTag('ak4ParticleNetJetTags:probb'), float, doc="ParticleNet prob b", precision=10),
+       #),
        variables = cms.PSet(
           P4Vars,
           area = Var("jetArea()", float, doc="jet catchment area, for JECs",precision=10),
@@ -118,8 +119,8 @@ def addAK4Jets(process, isMC):
    )
 
    process.ak4JetTask = cms.Task(
-      process.ak4ParticleNetJetTagInfos,
-      process.ak4ParticleNetJetTags,
+      #process.ak4ParticleNetJetTagInfos,
+      #process.ak4ParticleNetJetTags,
       process.ak4JetTable,
    )
 
@@ -169,9 +170,9 @@ def addAK8Jets(process, isMC):
    from RecoJets.JetProducers.nJettinessAdder_cfi import Njettiness
    process.Njettiness = Njettiness.clone(src = cms.InputTag("ak8Jets"), srcWeights="")
 
-   process.ak8ParticleNetJetTagInfos = cms.EDProducer("DeepBoostedJetTagInfoScoutingProducer",
+   process.ak8ParticleNetJetTagInfos = cms.EDProducer("DeepBoostedJetTagInfoProducer",
        jet_radius = cms.double( 0.8 ),
-       min_jet_pt = cms.double( 170.0 ),
+       min_jet_pt = cms.double( 5.0 ),
        max_jet_eta = cms.double( 2.5 ),
        min_pt_for_track_properties = cms.double( 0.95 ),
        min_pt_for_pfcandidates = cms.double( 0.1 ),
@@ -185,6 +186,7 @@ def addAK8Jets(process, isMC):
        pf_candidates = cms.InputTag( "pfcands" ),
        jets = cms.InputTag( "ak8Jets" ),
        puppi_value_map = cms.InputTag( "" ),
+       use_scouting_features = cms.bool( True ),
        normchi2_value_map = cms.InputTag("pfcands", "normchi2"),
        dz_value_map = cms.InputTag("pfcands", "dz"),
        dxy_value_map = cms.InputTag("pfcands", "dxy"),
@@ -198,7 +200,7 @@ def addAK8Jets(process, isMC):
    )
 
    from RecoBTag.ONNXRuntime.boostedJetONNXJetTagsProducer_cfi import boostedJetONNXJetTagsProducer
-   process.ak8ParticleNetJetTags = cms.EDProducer("BoostedJetONNXJetTagsScoutingProducer",
+   process.ak8ParticleNetJetTags = cms.EDProducer("BoostedJetONNXValueMapProducer",
        jets = cms.InputTag("ak8Jets"),
        src = cms.InputTag("ak8ParticleNetJetTagInfos"),
        preprocess_json = cms.string("Run3ScoutingAnalysisTools/Models/preprocess_doublebtag.json"),
@@ -207,7 +209,7 @@ def addAK8Jets(process, isMC):
        debugMode = cms.untracked.bool(True),
    )
 
-   process.ak8ParticleNetMassRegressionJetTags = cms.EDProducer("BoostedJetONNXJetTagsScoutingProducer",
+   process.ak8ParticleNetMassRegressionJetTags = cms.EDProducer("BoostedJetONNXValueMapProducer",
        jets = cms.InputTag("ak8Jets"), 
        src = cms.InputTag("ak8ParticleNetJetTagInfos"),
        preprocess_json = cms.string("Run3ScoutingAnalysisTools/Models/preprocess_massreg.json"),
@@ -231,9 +233,9 @@ def addAK8Jets(process, isMC):
           tau2 = ExtVar(cms.InputTag('Njettiness:tau2'), float, doc="Nsubjettiness (2 axis)", precision=10),
           tau3 = ExtVar(cms.InputTag('Njettiness:tau3'), float, doc="Nsubjettiness (3 axis)", precision=10),
           tau4 = ExtVar(cms.InputTag('Njettiness:tau4'), float, doc="Nsubjettiness (4 axis)", precision=10),
-          ParticleNetMass = ExtVar(cms.InputTag('ak8ParticleNetMassRegressionJetTags:mass'), float, doc="ParticleNet regress mass", precision=10),
+          #ParticleNetMass = ExtVar(cms.InputTag('ak8ParticleNetMassRegressionJetTags:mass'), float, doc="ParticleNet regress mass", precision=10),
           ParticleNet_ProbHbb = ExtVar(cms.InputTag('ak8ParticleNetJetTags:probHbb'), float, doc="ParticleNet probbHbb", precision=10),
-          ParticleNet_ProbQCD = ExtVar(cms.InputTag('ak8ParticleNetJetTags:probQCDall'), float, doc="ParticleNet probbQCD", precision=10),
+          #ParticleNet_ProbQCD = ExtVar(cms.InputTag('ak8ParticleNetJetTags:probQCDall'), float, doc="ParticleNet probbQCD", precision=10),
        ),
        variables = cms.PSet(
           P4Vars,
@@ -266,7 +268,7 @@ def addAK8Jets(process, isMC):
        process.Njettiness,
        process.ak8ParticleNetJetTagInfos,
        process.ak8ParticleNetJetTags,
-       process.ak8ParticleNetMassRegressionJetTags,
+       #process.ak8ParticleNetMassRegressionJetTags,
        process.ak8JetTable,
    )
 

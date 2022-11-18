@@ -26,10 +26,10 @@
 using namespace cms::Ort;
 using namespace btagbtvdeep;
 
-class BoostedJetONNXJetTagsScoutingProducer : public edm::stream::EDProducer<edm::GlobalCache<ONNXRuntime>> {
+class BoostedJetONNXValueMapProducer : public edm::stream::EDProducer<edm::GlobalCache<ONNXRuntime>> {
 public:
-  explicit BoostedJetONNXJetTagsScoutingProducer(const edm::ParameterSet &, const ONNXRuntime *);
-  ~BoostedJetONNXJetTagsScoutingProducer() override;
+  explicit BoostedJetONNXValueMapProducer(const edm::ParameterSet &, const ONNXRuntime *);
+  ~BoostedJetONNXValueMapProducer() override;
 
   static void fillDescriptions(edm::ConfigurationDescriptions &);
 
@@ -66,7 +66,7 @@ private:
   bool debug_ = false;
 };
 
-BoostedJetONNXJetTagsScoutingProducer::BoostedJetONNXJetTagsScoutingProducer(const edm::ParameterSet &iConfig, const ONNXRuntime *cache)
+BoostedJetONNXValueMapProducer::BoostedJetONNXValueMapProducer(const edm::ParameterSet &iConfig, const ONNXRuntime *cache)
     : src_(consumes<TagInfoCollection>(iConfig.getParameter<edm::InputTag>("src"))),
       flav_names_(iConfig.getParameter<std::vector<std::string>>("flav_names")),
       jet_token_(consumes<edm::View<reco::Jet>>(iConfig.getParameter<edm::InputTag>("jets"))),
@@ -163,9 +163,9 @@ BoostedJetONNXJetTagsScoutingProducer::BoostedJetONNXJetTagsScoutingProducer(con
   }
 }
 
-BoostedJetONNXJetTagsScoutingProducer::~BoostedJetONNXJetTagsScoutingProducer() {}
+BoostedJetONNXValueMapProducer::~BoostedJetONNXValueMapProducer() {}
 
-void BoostedJetONNXJetTagsScoutingProducer::fillDescriptions(edm::ConfigurationDescriptions &descriptions) {
+void BoostedJetONNXValueMapProducer::fillDescriptions(edm::ConfigurationDescriptions &descriptions) {
   // pfDeepBoostedJetTags
   edm::ParameterSetDescription desc;
   desc.add<edm::InputTag>("src", edm::InputTag("pfDeepBoostedJetTagInfos"));
@@ -203,13 +203,13 @@ void BoostedJetONNXJetTagsScoutingProducer::fillDescriptions(edm::ConfigurationD
   descriptions.addWithDefaultLabel(desc);
 }
 
-std::unique_ptr<ONNXRuntime> BoostedJetONNXJetTagsScoutingProducer::initializeGlobalCache(const edm::ParameterSet &iConfig) {
+std::unique_ptr<ONNXRuntime> BoostedJetONNXValueMapProducer::initializeGlobalCache(const edm::ParameterSet &iConfig) {
   return std::make_unique<ONNXRuntime>(iConfig.getParameter<edm::FileInPath>("model_path").fullPath());
 }
 
-void BoostedJetONNXJetTagsScoutingProducer::globalEndJob(const ONNXRuntime *cache) {}
+void BoostedJetONNXValueMapProducer::globalEndJob(const ONNXRuntime *cache) {}
 
-void BoostedJetONNXJetTagsScoutingProducer::produce(edm::Event &iEvent, const edm::EventSetup &iSetup) {
+void BoostedJetONNXValueMapProducer::produce(edm::Event &iEvent, const edm::EventSetup &iSetup) {
   edm::Handle<TagInfoCollection> tag_infos;
   iEvent.getByToken(src_, tag_infos);
 
@@ -222,15 +222,20 @@ void BoostedJetONNXJetTagsScoutingProducer::produce(edm::Event &iEvent, const ed
     std::vector<float> outputs(flav_names_.size(), 0);  // init as all zeros
 
     if (!taginfo.features().empty()) {
+      std::cout << "Tag info is not empty" << std::endl;
       // convert inputs
       make_inputs(taginfo);
       // run prediction and get outputs
+      std::cout << "Input shapes is empty: " << input_shapes_.empty() << std::endl;
       outputs = globalCache()->run(input_names_, data_, input_shapes_)[0];
+      std::cout << jet_n << ": " << outputs[0] << std::endl;
       assert(outputs.size() == flav_names_.size());
     }
 
+    std::cout << "Jet # " << jet_n << std::endl;
     for (std::size_t flav_n = 0; flav_n < flav_names_.size(); flav_n++) {
       output_scores[flav_n][jet_n] = outputs[flav_n];
+      std::cout << flav_names_[flav_n] << ": " << outputs[flav_n] << std::endl;
     }
   }
 
@@ -246,7 +251,7 @@ void BoostedJetONNXJetTagsScoutingProducer::produce(edm::Event &iEvent, const ed
   }
 }
 
-std::vector<float> BoostedJetONNXJetTagsScoutingProducer::center_norm_pad(const std::vector<float> &input,
+std::vector<float> BoostedJetONNXValueMapProducer::center_norm_pad(const std::vector<float> &input,
                                                                   float center,
                                                                   float norm_factor,
                                                                   unsigned min_length,
@@ -268,7 +273,7 @@ std::vector<float> BoostedJetONNXJetTagsScoutingProducer::center_norm_pad(const 
   return out;
 }
 
-void BoostedJetONNXJetTagsScoutingProducer::make_inputs(const reco::DeepBoostedJetTagInfo &taginfo) {
+void BoostedJetONNXValueMapProducer::make_inputs(const reco::DeepBoostedJetTagInfo &taginfo) {
   for (unsigned igroup = 0; igroup < input_names_.size(); ++igroup) {
     const auto &group_name = input_names_[igroup];
     const auto &prep_params = prep_info_map_.at(group_name);
@@ -311,4 +316,4 @@ void BoostedJetONNXJetTagsScoutingProducer::make_inputs(const reco::DeepBoostedJ
 }
 
 //define this as a plug-in
-DEFINE_FWK_MODULE(BoostedJetONNXJetTagsScoutingProducer);
+DEFINE_FWK_MODULE(BoostedJetONNXValueMapProducer);
