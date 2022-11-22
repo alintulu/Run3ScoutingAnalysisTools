@@ -88,7 +88,4 @@ cmsDriver.py \
 
 ### Left to figure out
 
-- How to get softdrop mass from AK8 jets
-- How to use bDiscriminator with PF (not PAT) jets
-- Why PF jets does not take mass and area
-- How to add n2b1 to ak8 jets
+- How to get number of daughters for the jet

@@ -33,7 +33,7 @@
         "pad": 0
       }
     },
-    "min_length": 16,
+    "min_length": 17,
     "max_length": 100
   },
   "pf_features": {
@@ -185,7 +185,7 @@
         "pad": 0
       }
     },
-    "min_length": 16,
+    "min_length": 17,
     "max_length": 100
   },
   "pf_mask": {
@@ -202,7 +202,7 @@
         "pad": 0
       }
     },
-    "min_length": 16,
+    "min_length": 17,
     "max_length": 100
   }
 }

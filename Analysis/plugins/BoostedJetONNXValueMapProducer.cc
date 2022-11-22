@@ -222,20 +222,15 @@ void BoostedJetONNXValueMapProducer::produce(edm::Event &iEvent, const edm::Even
     std::vector<float> outputs(flav_names_.size(), 0);  // init as all zeros
 
     if (!taginfo.features().empty()) {
-      std::cout << "Tag info is not empty" << std::endl;
       // convert inputs
       make_inputs(taginfo);
       // run prediction and get outputs
-      std::cout << "Input shapes is empty: " << input_shapes_.empty() << std::endl;
       outputs = globalCache()->run(input_names_, data_, input_shapes_)[0];
-      std::cout << jet_n << ": " << outputs[0] << std::endl;
       assert(outputs.size() == flav_names_.size());
     }
 
-    std::cout << "Jet # " << jet_n << std::endl;
     for (std::size_t flav_n = 0; flav_n < flav_names_.size(); flav_n++) {
       output_scores[flav_n][jet_n] = outputs[flav_n];
-      std::cout << flav_names_[flav_n] << ": " << outputs[flav_n] << std::endl;
     }
   }
 

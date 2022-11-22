@@ -8,15 +8,15 @@ def scoutingToReco(process):
      scoutingparticle=cms.InputTag("hltScoutingPFPacker"),
    )
 
-   process.ak4Jets = cms.EDProducer(
-     "Run3ScoutingToRecoJetProducer",
-     scoutingjet=cms.InputTag("hltScoutingPFPacker"),
-     recopfcand=cms.InputTag("pfcands"),
-   )
+   #process.ak4Jets = cms.EDProducer(
+   #  "Run3ScoutingToRecoJetProducer",
+   #  scoutingjet=cms.InputTag("hltScoutingPFPacker"),
+   #  recopfcand=cms.InputTag("pfcands"),
+   #)
 
    process.recoTask = cms.Task(
       process.pfcands,
-      process.ak4Jets,
+      #process.ak4Jets,
    )
    process.schedule.associate(process.recoTask)
 
@@ -51,6 +51,11 @@ def addParticles(process):
    process.schedule.associate(process.particleTask)
 
 def addAK4Jets(process, isMC):
+ 
+   from RecoJets.JetProducers.ak4PFJets_cfi import ak4PFJets
+   process.ak4Jets = ak4PFJets.clone(
+      src = ("pfcands"),
+   )
 
    process.ak4ParticleNetJetTagInfos = cms.EDProducer("DeepBoostedJetTagInfoProducer",
        jet_radius = cms.double( 0.4 ),
@@ -87,8 +92,8 @@ def addAK4Jets(process, isMC):
        src = cms.InputTag("ak4ParticleNetJetTagInfos"),
        preprocess_json = cms.string("Run3ScoutingAnalysisTools/Models/preprocess_flavourtag.json"),
        model_path = cms.FileInPath("Run3ScoutingAnalysisTools/Models/flavourtag.onnx"),
-       flav_names = cms.vstring(["probb", "probbb","probc", "probcc", "probuds", "probg"]),
-       debugMode = cms.untracked.bool(True),
+       flav_names = cms.vstring(["probb", "probbb","probc", "probcc", "probuds", "probg", "probundef"]),
+       debugMode = cms.untracked.bool(False),
    )
 
    process.ak4JetTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
@@ -98,9 +103,15 @@ def addAK4Jets(process, isMC):
        doc = cms.string("ScoutingJet"),
        singleton = cms.bool(False),
        extension = cms.bool(False), # this is the main table
-       #externalVariables = cms.PSet(
-       #   ParticleNet_Probb = ExtVar(cms.InputTag('ak4ParticleNetJetTags:probb'), float, doc="ParticleNet prob b", precision=10),
-       #),
+       externalVariables = cms.PSet(
+          particleNet_prob_b = ExtVar(cms.InputTag('ak4ParticleNetJetTags:probb'), float, doc="ParticleNet prob b", precision=10),
+          particleNet_prob_bb = ExtVar(cms.InputTag('ak4ParticleNetJetTags:probbb'), float, doc="ParticleNet prob b", precision=10),
+          particleNet_prob_c = ExtVar(cms.InputTag('ak4ParticleNetJetTags:probc'), float, doc="ParticleNet prob c", precision=10),
+          particleNet_prob_cc = ExtVar(cms.InputTag('ak4ParticleNetJetTags:probcc'), float, doc="ParticleNet prob cc", precision=10),
+          particlenet_prob_uds = ExtVar(cms.InputTag('ak4ParticleNetJetTags:probuds'), float, doc="particlenet prob uds", precision=10),
+          particleNet_prob_g = ExtVar(cms.InputTag('ak4ParticleNetJetTags:probg'), float, doc="ParticleNet prob g", precision=10),
+          particleNet_prob_undef = ExtVar(cms.InputTag('ak4ParticleNetJetTags:probundef'), float, doc="ParticleNet prob undef", precision=10),
+       ),
        variables = cms.PSet(
           P4Vars,
           area = Var("jetArea()", float, doc="jet catchment area, for JECs",precision=10),
@@ -119,21 +130,26 @@ def addAK4Jets(process, isMC):
    )
 
    process.ak4JetTask = cms.Task(
-      #process.ak4ParticleNetJetTagInfos,
-      #process.ak4ParticleNetJetTags,
+      process.ak4Jets,
+      process.ak4ParticleNetJetTagInfos,
+      process.ak4ParticleNetJetTags,
       process.ak4JetTable,
    )
 
    process.schedule.associate(process.ak4JetTask)
 
    if (isMC):
-      process.ak4MatchGenTable = cms.EDProducer("MatchJetToGenJetTableProducer",
-          jets = cms.InputTag("ak4Jets"),
-          genjets = cms.InputTag("slimmedGenJets"),
-          nameTable = cms.string("ScoutingJet"),
+      process.ak4MatchGen = cms.EDProducer("RecoJetToGenJetDeltaRValueMapProducer2",
+          src = cms.InputTag("ak4Jets"),
+          matched = cms.InputTag("slimmedGenJets"),
+          distMax = cms.double(0.4),
+          value = cms.string("index"),
       )
-      process.ak4MatchGenTableTask = cms.Task(process.ak4MatchGenTable)
-      process.schedule.associate(process.ak4MatchGenTableTask)
+      process.ak4MatchGenTask = cms.Task(process.ak4MatchGen)
+      externalVariables = getattr(process.ak4JetTable, 'externalVariables', cms.PSet())
+      externalVariables.genJetIdx = ExtVar(cms.InputTag("ak4MatchGen"), int, doc="gen jet idx")
+      process.ak4JetTable.externalVariables = externalVariables
+      process.schedule.associate(process.ak4MatchGenTask)
 
 def addAK8Jets(process, isMC):
 
@@ -206,7 +222,7 @@ def addAK8Jets(process, isMC):
        preprocess_json = cms.string("Run3ScoutingAnalysisTools/Models/preprocess_doublebtag.json"),
        model_path = cms.FileInPath("Run3ScoutingAnalysisTools/Models/doublebtag.onnx"),
        flav_names = cms.vstring(["probHbb", "probHcc","probHqq", "probQCDall"]),
-       debugMode = cms.untracked.bool(True),
+       debugMode = cms.untracked.bool(False),
    )
 
    process.ak8ParticleNetMassRegressionJetTags = cms.EDProducer("BoostedJetONNXValueMapProducer",
@@ -215,7 +231,7 @@ def addAK8Jets(process, isMC):
        preprocess_json = cms.string("Run3ScoutingAnalysisTools/Models/preprocess_massreg.json"),
        model_path = cms.FileInPath("Run3ScoutingAnalysisTools/Models/massreg.onnx"),
        flav_names = cms.vstring(["mass"]),
-       debugMode = cms.untracked.bool(True),
+       debugMode = cms.untracked.bool(False),
    )
 
    process.ak8JetTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
@@ -233,9 +249,11 @@ def addAK8Jets(process, isMC):
           tau2 = ExtVar(cms.InputTag('Njettiness:tau2'), float, doc="Nsubjettiness (2 axis)", precision=10),
           tau3 = ExtVar(cms.InputTag('Njettiness:tau3'), float, doc="Nsubjettiness (3 axis)", precision=10),
           tau4 = ExtVar(cms.InputTag('Njettiness:tau4'), float, doc="Nsubjettiness (4 axis)", precision=10),
-          #ParticleNetMass = ExtVar(cms.InputTag('ak8ParticleNetMassRegressionJetTags:mass'), float, doc="ParticleNet regress mass", precision=10),
-          ParticleNet_ProbHbb = ExtVar(cms.InputTag('ak8ParticleNetJetTags:probHbb'), float, doc="ParticleNet probbHbb", precision=10),
-          #ParticleNet_ProbQCD = ExtVar(cms.InputTag('ak8ParticleNetJetTags:probQCDall'), float, doc="ParticleNet probbQCD", precision=10),
+          particleNet_mass = ExtVar(cms.InputTag('ak8ParticleNetMassRegressionJetTags:mass'), float, doc="ParticleNet regress mass", precision=10),
+          particleNet_prob_Hbb = ExtVar(cms.InputTag('ak8ParticleNetJetTags:probHbb'), float, doc="ParticleNet prob Hbb", precision=10),
+          particleNet_prob_Hcc = ExtVar(cms.InputTag('ak8ParticleNetJetTags:probHcc'), float, doc="ParticleNet prob Hcc", precision=10),
+          particleNet_prob_Hqq = ExtVar(cms.InputTag('ak8ParticleNetJetTags:probHqq'), float, doc="ParticleNet prob Hqq", precision=10),
+          particleNet_prob_QCD = ExtVar(cms.InputTag('ak8ParticleNetJetTags:probQCDall'), float, doc="ParticleNet probbQCD", precision=10),
        ),
        variables = cms.PSet(
           P4Vars,
@@ -253,12 +271,6 @@ def addAK8Jets(process, isMC):
           nConstituents = Var("numberOfDaughters()", "uint8", doc="Number of particles in the jet")
        ),
    )
-
-   process.ak8MatchGenTable = cms.EDProducer("MatchJetToGenJetTableProducer",
-       jets = cms.InputTag("ak8Jets"),
-       genjets = cms.InputTag("slimmedGenJets"),
-       nameTable = cms.string("ScoutingFatJet"),
-   )
  
    process.ak8JetTask = cms.Task(
        process.ak8Jets,
@@ -268,18 +280,13 @@ def addAK8Jets(process, isMC):
        process.Njettiness,
        process.ak8ParticleNetJetTagInfos,
        process.ak8ParticleNetJetTags,
-       #process.ak8ParticleNetMassRegressionJetTags,
+       process.ak8ParticleNetMassRegressionJetTags,
        process.ak8JetTable,
    )
 
    process.schedule.associate(process.ak8JetTask)
 
    if (isMC):
-      #process.ak8MatchGenTable = cms.EDProducer("MatchJetToGenJetTableProducer",
-      #    jets = cms.InputTag("ak8Jets"),
-      #    genjets = cms.InputTag("slimmedAK8GenJets"),
-      #    nameTable = cms.string("ScoutingFatJet"),
-      #)
       process.ak8MatchGen = cms.EDProducer("RecoJetToGenJetDeltaRValueMapProducer2",
           src = cms.InputTag("ak8Jets"),
           matched = cms.InputTag("slimmedGenJetsAK8"),
