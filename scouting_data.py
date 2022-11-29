@@ -22,7 +22,7 @@ process.load('Configuration.StandardSequences.EndOfProcess_cff')
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 
 process.maxEvents = cms.untracked.PSet(
-    input = cms.untracked.int32(10),
+    input = cms.untracked.int32(1),
     output = cms.optional.untracked.allowed(cms.int32,cms.PSet)
 )
 
@@ -30,7 +30,8 @@ process.maxEvents = cms.untracked.PSet(
 process.source = cms.Source("PoolSource",
     fileNames = cms.untracked.vstring(
      #'root://cmseos.fnal.gov//store/user/dmahon/condor/RPVSingleStopRun3MC/MINIAOD/MINIAOD-2000_100-1.root'
-     '/store/data/Run2022F/ScoutingPFRun3/RAW/v1/000/361/303/00001/4f57c471-20d2-44db-b4f1-20e89b7c9fda.root'
+     #'/store/data/Run2022F/ScoutingPFRun3/RAW/v1/000/361/303/00001/4f57c471-20d2-44db-b4f1-20e89b7c9fda.root'
+     '/store/data/Run2022F/ScoutingPFRun3/RAW/v1/000/361/303/00000/37f1ab1d-94f9-4177-91e5-db46490bc69a.root'
      #'/store/mc/Run3Summer22DRPremix/MinBias_TuneCP5_14TeV-pythia8/AODSIM/Pilot_124X_mcRun3_2022_realistic_v11-v2/50000/b255101d-13ab-4068-a46c-a5ea9e1a8a6c.root'
      #'file:miniaodscouting.root'
     ),
@@ -123,10 +124,10 @@ from PhysicsTools.NanoAOD.nanogen_cff import customizeNanoGENFromMini
 process = customizeNanoGENFromMini(process)
 
 # Automatic addition of the customisation function from Run3ScoutingAnalysisTools.Analysis.Run3Scouting_cff
-from Run3ScoutingAnalysisTools.Analysis.Run3Scouting_cff import customise 
+from Run3ScoutingAnalysisTools.Analysis.Run3Scouting_cff import run3Scouting_customiseData 
 
 #call to customisation function customise imported from Run3ScoutingAnalysisTools.Analysis.Run3Scouting_cff
-process = customise(process)
+process = run3Scouting_customiseData(process)
 
 # End of customisation functions
 
