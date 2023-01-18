@@ -68,6 +68,15 @@ process.genJetSeq = cms.Sequence(
     process.ak8GenJetsWithNuSoftDrop
 )
 
+# Get flavour association
+process.load('PhysicsTools.NanoAOD.jetMC_cff')
+process.patJetPartonsNano.particles = cms.InputTag("genParticles")
+process.genJetFlavourAssociation.jets = cms.InputTag("ak8GenJetsWithNuSoftDrop")
+process.flavourSeq = cms.Sequence(
+   process.patJetPartonsNano+
+   process.genJetFlavourAssociation
+)
+
 # Make tree
 process.mmtree = cms.EDAnalyzer('ScoutingNanoAOD',
         pfcandsParticleNet = cms.InputTag("hltScoutingPFPacker"),
@@ -75,4 +84,4 @@ process.mmtree = cms.EDAnalyzer('ScoutingNanoAOD',
         isQCD            = cms.bool( '/QCD_' in params.inputDataset ),
         ak8genjet        = cms.InputTag('ak8GenJetsWithNuSoftDrop'),
 )
-process.p = cms.Path(process.genJetSeq*process.mmtree)
+process.p = cms.Path(process.genJetSeq*process.flavourSeq*process.mmtree)

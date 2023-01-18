@@ -14,7 +14,7 @@
 using namespace deepntuples;
 
 std::pair<FatJetMatching::FatJetLabel, const reco::GenParticle*> FatJetMatching::flavorLabel(const fastjet::PseudoJet jet,
-    const reco::GenParticleCollection& genParticles, double distR) {
+    const reco::GenParticleCollection& genParticles, double distR, const reco::GenJet* genJet) {
 
   processed_.clear();
 
@@ -61,7 +61,7 @@ std::pair<FatJetMatching::FatJetLabel, const reco::GenParticle*> FatJetMatching:
   if (genParticles.size() != processed_.size())
     throw std::logic_error("[FatJetMatching::flavor] Not all genParticles are processed!");
 
-  return qcd_label(jet, genParticles, distR);
+  return qcd_label(jet, genParticles, distR, genJet);
 
 }
 
@@ -498,7 +498,7 @@ std::pair<FatJetMatching::FatJetLabel,const reco::GenParticle*> FatJetMatching::
 
 }
 
-std::pair<FatJetMatching::FatJetLabel,const reco::GenParticle*> FatJetMatching::qcd_label(const fastjet::PseudoJet jet, const reco::GenParticleCollection& genParticles, double distR)
+std::pair<FatJetMatching::FatJetLabel,const reco::GenParticle*> FatJetMatching::qcd_label(const fastjet::PseudoJet jet, const reco::GenParticleCollection& genParticles, double distR, const reco::GenJet* genJet)
 {
 
   // const reco::GenParticle *parton = nullptr;
@@ -521,18 +521,20 @@ std::pair<FatJetMatching::FatJetLabel,const reco::GenParticle*> FatJetMatching::
   //   }
   // }
 
-  // auto n_bHadrons = jet->jetFlavourInfo().getbHadrons().size();
-  // auto n_cHadrons = jet->jetFlavourInfo().getcHadrons().size();
+   if (genJet) {
+     auto n_bHadrons = genJet->jetFlavourInfo().getbHadrons().size();
+     auto n_cHadrons = genJet->jetFlavourInfo().getcHadrons().size();
 
-  // if (n_bHadrons>=2) {
-  //   return std::make_pair(FatJetLabel::QCD_bb, parton);
-  // }else if (n_bHadrons==1){
-  //   return std::make_pair(FatJetLabel::QCD_b, parton);
-  // }else if (n_cHadrons>=2){
-  //   return std::make_pair(FatJetLabel::QCD_cc, parton);
-  // }else if (n_cHadrons==1){
-  //   return std::make_pair(FatJetLabel::QCD_c, parton);
-  // }
+     if (n_bHadrons>=2) {
+       return std::make_pair(FatJetLabel::QCD_bb, nullptr);
+     }else if (n_bHadrons==1){
+       return std::make_pair(FatJetLabel::QCD_b, nullptr);
+     }else if (n_cHadrons>=2){
+       return std::make_pair(FatJetLabel::QCD_cc, nullptr);
+     }else if (n_cHadrons==1){
+       return std::make_pair(FatJetLabel::QCD_c, nullptr);
+     }
+  }
 
   return std::make_pair(FatJetLabel::QCD_all, nullptr);
 }

@@ -398,8 +398,20 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
   ak8_jet_idx = 0;
   for(auto &j: ak8_jets) {
 
+    std::pair <deepntuples::FatJetMatching::FatJetLabel, const reco::GenParticle*> ak8_label;
     // Match AK8 jet to truth label
-    auto ak8_label = ak8_match.flavorLabel(j, *genpartH, 0.8);
+    if (std::find(unmatchedJets.begin(), unmatchedJets.end(), ak8_jet_idx) != unmatchedJets.end()) {
+
+      if (debug) std::cout << "\nUnmatched!" << std::endl;
+      ak8_label = ak8_match.flavorLabel(j, *genpartH, 0.8, nullptr);
+
+    } else {
+      
+      if (debug) std::cout << "\nMatched!" << std::endl;
+      const auto *gj = &resultMap[ak8_jet_idx];
+      ak8_label = ak8_match.flavorLabel(j, *genpartH, 0.8, gj);
+
+    }
     if (debug) std::cout << "Label: " << ak8_label.first << std::endl;
 
     float etasign = j.eta() > 0 ? 1 : -1;

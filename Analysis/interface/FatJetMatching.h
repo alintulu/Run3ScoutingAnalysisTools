@@ -9,6 +9,7 @@
 #define FATJETHELPERS_INTERFACE_FATJETMATCHING_H_
 
 #include "DataFormats/HepMCCandidate/interface/GenParticleFwd.h"
+#include "DataFormats/JetReco/interface/GenJet.h"
 #include <unordered_set>
 #include <utility>
 
@@ -77,14 +78,14 @@ public:
 
 //   std::pair<FatJetFlavor, const reco::GenParticle*> flavorJMAR(const fastjet::PseudoJet jet, const reco::GenParticleCollection& genParticles, double genRadius = 0.6);
 
-  std::pair<FatJetLabel, const reco::GenParticle*> flavorLabel(const fastjet::PseudoJet jet, const reco::GenParticleCollection& genParticles, double distR);
+  std::pair<FatJetLabel, const reco::GenParticle*> flavorLabel(const fastjet::PseudoJet jet, const reco::GenParticleCollection& genParticles, double distR, const reco::GenJet* genJet);
 
 private:
   std::pair<FatJetLabel, const reco::GenParticle*> top_label(const fastjet::PseudoJet jet, const reco::GenParticle *parton, double distR);
   std::pair<FatJetLabel, const reco::GenParticle*> w_label(const fastjet::PseudoJet jet, const reco::GenParticle *parton, double distR);
   std::pair<FatJetLabel, const reco::GenParticle*> z_label(const fastjet::PseudoJet jet, const reco::GenParticle *parton, double distR);
   std::pair<FatJetLabel, const reco::GenParticle*> higgs_label(const fastjet::PseudoJet jet, const reco::GenParticle *parton, double distR);
-  std::pair<FatJetLabel, const reco::GenParticle*> qcd_label(const fastjet::PseudoJet jet, const reco::GenParticleCollection& genParticles, double distR);
+  std::pair<FatJetLabel, const reco::GenParticle*> qcd_label(const fastjet::PseudoJet jet, const reco::GenParticleCollection& genParticles, double distR, const reco::GenJet* genJet);
 
 
 private:
