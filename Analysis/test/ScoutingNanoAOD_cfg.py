@@ -50,7 +50,7 @@ process.TFileService = cms.Service("TFileService",
 # Create softdrop groomed GEN jets
 from RecoJets.JetProducers.ak8GenJets_cfi import ak8GenJets
 process.ak8GenJetsWithNu = ak8GenJets.clone(
-    src='packedGenParticles',
+    src='genParticles',
     rParam=cms.double(0.8),
     jetPtMin=100.0
 )
@@ -71,7 +71,7 @@ process.genJetSeq = cms.Sequence(
 # Make tree
 process.mmtree = cms.EDAnalyzer('ScoutingNanoAOD',
         pfcandsParticleNet = cms.InputTag("hltScoutingPFPacker"),
-        genpart          = cms.InputTag("prunedGenParticles"),
+        genpart          = cms.InputTag("genParticles"),
         isQCD            = cms.bool( '/QCD_' in params.inputDataset ),
         ak8genjet        = cms.InputTag('ak8GenJetsWithNuSoftDrop'),
 )

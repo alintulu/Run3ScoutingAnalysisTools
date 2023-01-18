@@ -134,7 +134,6 @@ private:
   virtual void beginLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
   virtual void endLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
   virtual void clearVars();
-  bool isNeutralPdg(int);
   const edm::InputTag triggerResultsTag;
   const edm::EDGetTokenT<std::vector<Run3ScoutingParticle> >  	pfcandsParticleNetToken;
   const edm::EDGetTokenT<reco::GenParticleCollection>      genpartsToken;
@@ -164,6 +163,11 @@ private:
   vector<Float16_t> pfcand_btagEtaRel;
   vector<Float16_t> pfcand_btagPtRatio;
   vector<Float16_t> pfcand_btagPParRatio;
+  vector<Float16_t> pfcand_erel_log;
+  vector<Float16_t> pfcand_deltaR;
+  vector<Float16_t> pfcand_ptrel;
+  vector<Float16_t> pfcand_erel;
+  vector<Float16_t> pfcand_ptrel_log;
 
   //Jet kinematics
   float fj_pt;
@@ -199,7 +203,7 @@ private:
   //Event number
   int event_no;
 
-  bool debug = true;
+  bool debug = false;
   int debug_match_numJets = 5;
 
   bool isQCD;
@@ -243,6 +247,11 @@ ScoutingNanoAOD::ScoutingNanoAOD(const edm::ParameterSet& iConfig):
   tree->Branch("pfcand_btagEtaRel", &pfcand_btagEtaRel);
   tree->Branch("pfcand_btagPtRatio", &pfcand_btagPtRatio);
   tree->Branch("pfcand_btagPParRatio", &pfcand_btagPParRatio);
+  tree->Branch("pfcand_erel_log", &pfcand_erel_log);
+  tree->Branch("pfcand_deltaR", &pfcand_deltaR);
+  tree->Branch("pfcand_ptrel", &pfcand_ptrel);
+  tree->Branch("pfcand_erel", &pfcand_erel);
+  tree->Branch("pfcand_ptrel_log", &pfcand_ptrel_log);
 
   tree->Branch("fj_pt", &fj_pt);
   tree->Branch("fj_eta", &fj_eta);
@@ -277,15 +286,6 @@ ScoutingNanoAOD::ScoutingNanoAOD(const edm::ParameterSet& iConfig):
 }
 
 ScoutingNanoAOD::~ScoutingNanoAOD() {
-}
-
-bool ScoutingNanoAOD::isNeutralPdg(int pdgId) {
-   const int neutralPdgs_array[] = {9, 21, 22, 23, 25, 12, 14, 16, 111, 130, 310, 311, 421, 511, 2112}; // gluon, gluon, gamma, Z0, higgs, electron neutrino, muon neutrino, tau neutrino, pi0, K0_L, K0_S; K0, neutron
-   const std::vector<int> neutralPdgs(neutralPdgs_array, neutralPdgs_array + sizeof(neutralPdgs_array) / sizeof(int));
-   if (std::find(neutralPdgs.begin(), neutralPdgs.end(), std::abs(pdgId)) == neutralPdgs.end())
-     return false;
- 
-   return true;
 }
 
 void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup) {
@@ -401,62 +401,78 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
     // Match AK8 jet to truth label
     auto ak8_label = ak8_match.flavorLabel(j, *genpartH, 0.8);
     if (debug) std::cout << "Label: " << ak8_label.first << std::endl;
-    //if ((ak8_label.first == FatJetMatching::QCD_all && !isQCD) || (ak8_label.first != FatJetMatching::QCD_all && isQCD)) continue;
 
     float etasign = j.eta() > 0 ? 1 : -1;
 
-    // The following is needed to compute btagEtaRel, btagPtRatio and btagPParRatio
     float jet_px = j.pt() * cos(j.phi());
     float jet_py = j.pt() * sin(j.phi());
     float jet_pz = j.pt() * sinh(j.eta());
     math::XYZVector jet_dir_temp(jet_px, jet_py, jet_pz);
     math::XYZVector jet_dir = jet_dir_temp.Unit();
-    TVector3 jet_dir3(jet_px, jet_py, jet_pz);
+    TVector3 jet_direction(jet_px, jet_py, jet_pz);
+    math::PtEtaPhiMLorentzVector jet_p4(j.pt(), j.eta(), j.phi(), j.m());
 
     // Loop over AK8 jet constituents
     const vector<PseudoJet> constituents = j.constituents();
     for (auto &cand : constituents) {
       // Match PseudoJet constituent to PF candidate
       auto *reco_cand = dynamic_cast<const Run3ScoutingParticle*> (&pfcandsParticleNetH->at(cand.user_index()));
-      // The following is needed to compute btagEtaRel, btagPtRatio and btagPParRatio
-      float trk_px = reco_cand->trk_pt() * cos(reco_cand->trk_phi());
-      float trk_py = reco_cand->trk_pt() * sin(reco_cand->trk_phi());
-      float trk_pz = reco_cand->trk_pt() * sinh(reco_cand->trk_eta());
-      math::XYZVector track_mom(trk_px, trk_py, trk_pz);
-      TVector3 track_mom3(trk_px, trk_py, trk_pz);
-      double track_mag = sqrt(trk_px * trk_px + trk_py * trk_py + trk_pz * trk_pz);
 
-      float reco_cand_p = reco_cand->pt() * cosh(reco_cand->eta());
       auto rcm = pdTable->particle(HepPDT::ParticleID(reco_cand->pdgId())) != nullptr
                         ? pdTable->particle(HepPDT::ParticleID(reco_cand->pdgId()))->mass()
                         : -99.f;
-      if (rcm < -90) continue;
+      auto rcc = pdTable->particle(HepPDT::ParticleID(reco_cand->pdgId())) != nullptr
+                        ? pdTable->particle(HepPDT::ParticleID(reco_cand->pdgId()))->charge()
+                        : -99.f;
+      if (rcm < -90 or rcc < -90) continue;
+      math::PtEtaPhiMLorentzVector reco_cand_p4(reco_cand->pt(), reco_cand->eta(), reco_cand->phi(), rcm);
 
-      pfcand_e_log_nopuppi.push_back(log(sqrt(reco_cand_p*reco_cand_p + rcm*rcm)));
-      pfcand_pt_log_nopuppi.push_back(log(reco_cand->pt()));
-      pfcand_etarel.push_back(etasign * (reco_cand->eta() - j.eta()));
-      pfcand_phirel.push_back(deltaPhi(reco_cand->phi(), j.phi()));
-      pfcand_abseta.push_back(abs(reco_cand->eta()));
-      if (isNeutralPdg(reco_cand->pdgId())) {
-         pfcand_charge.push_back(0);
-      } else {
-         pfcand_charge.push_back(abs(reco_cand->pdgId())/reco_cand->pdgId());
-      }
+      pfcand_charge.push_back(rcc);
       pfcand_isEl.push_back(abs(reco_cand->pdgId()) == 11);
       pfcand_isMu.push_back(abs(reco_cand->pdgId()) == 13);
-      pfcand_isGamma.push_back(abs(reco_cand->pdgId()) == 22);
       pfcand_isChargedHad.push_back(abs(reco_cand->pdgId()) == 211);
+      pfcand_isGamma.push_back(abs(reco_cand->pdgId()) == 22);
       pfcand_isNeutralHad.push_back(abs(reco_cand->pdgId()) == 130);
-      pfcand_lostInnerHits.push_back(reco_cand->lostInnerHits());
-      pfcand_normchi2.push_back(reco_cand->normchi2());
-      pfcand_quality.push_back(reco_cand->quality());
-      pfcand_dz.push_back(reco_cand->dz());
-      pfcand_dzsig.push_back(reco_cand->dzsig());
-      pfcand_dxy.push_back(reco_cand->dxy());
-      pfcand_dxysig.push_back(reco_cand->dxysig());
-      pfcand_btagEtaRel.push_back(reco::btau::etaRel(jet_dir, track_mom));
-      pfcand_btagPtRatio.push_back(track_mom3.Perp(jet_dir3) / track_mag);
-      pfcand_btagPParRatio.push_back(jet_dir.Dot(track_mom) / track_mag);
+      pfcand_phirel.push_back(deltaPhi(reco_cand->phi(), j.phi()));
+      pfcand_etarel.push_back(etasign * (reco_cand->eta() - j.eta()));
+      pfcand_deltaR.push_back(deltaR(reco_cand->eta(), reco_cand->phi(), j.eta(), j.phi()));
+      pfcand_abseta.push_back(abs(reco_cand->eta()));
+      pfcand_ptrel_log.push_back(log(reco_cand->pt() / j.pt()));
+      pfcand_ptrel.push_back(reco_cand->pt() / j.pt());
+      pfcand_erel_log.push_back(log(reco_cand_p4.energy() / jet_p4.energy()));
+      pfcand_erel.push_back(reco_cand_p4.energy() / jet_p4.energy());
+      pfcand_pt_log_nopuppi.push_back(log(reco_cand->pt()));
+      pfcand_e_log_nopuppi.push_back(log(reco_cand_p4.energy()));
+     
+      if (reco_cand->normchi2() > 900) { 
+         pfcand_lostInnerHits.push_back(0);
+         pfcand_normchi2.push_back(0);
+         pfcand_quality.push_back(0);
+         pfcand_dz.push_back(0);
+         pfcand_dzsig.push_back(0);
+         pfcand_dxy.push_back(0);
+         pfcand_dxysig.push_back(0);
+         pfcand_btagEtaRel.push_back(0);
+         pfcand_btagPtRatio.push_back(0);
+         pfcand_btagPParRatio.push_back(0);
+       } else {
+         pfcand_lostInnerHits.push_back(reco_cand->lostInnerHits());
+         pfcand_normchi2.push_back(reco_cand->normchi2());
+         pfcand_quality.push_back(reco_cand->quality());
+         pfcand_dz.push_back(reco_cand->dz());
+         pfcand_dzsig.push_back(reco_cand->dzsig());
+         pfcand_dxy.push_back(reco_cand->dxy());
+         pfcand_dxysig.push_back(reco_cand->dxysig());
+         float trk_px = reco_cand->trk_pt() * cos(reco_cand->trk_phi());
+         float trk_py = reco_cand->trk_pt() * sin(reco_cand->trk_phi());
+         float trk_pz = reco_cand->trk_pt() * sinh(reco_cand->trk_eta());
+         math::XYZVector track_mom(trk_px, trk_py, trk_pz);
+         TVector3 track_direction(trk_px, trk_py, trk_pz);
+         double track_mag = sqrt(trk_px * trk_px + trk_py * trk_py + trk_pz * trk_pz);
+         pfcand_btagEtaRel.push_back(reco::btau::etaRel(jet_dir, track_mom));
+         pfcand_btagPtRatio.push_back(track_direction.Perp(jet_direction) / track_mag);
+         pfcand_btagPParRatio.push_back(jet_dir.Dot(track_mom) / track_mag);
+       }
     }
 
     fj_pt = j.pt();
@@ -533,6 +549,11 @@ void ScoutingNanoAOD::clearVars(){
   pfcand_btagEtaRel.clear();
   pfcand_btagPtRatio.clear();
   pfcand_btagPParRatio.clear();
+  pfcand_erel_log.clear();
+  pfcand_deltaR.clear();
+  pfcand_ptrel.clear();
+  pfcand_erel.clear();
+  pfcand_ptrel_log.clear();
 }
 
 void ScoutingNanoAOD::beginJob() {
