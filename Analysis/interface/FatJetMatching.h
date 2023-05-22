@@ -23,6 +23,7 @@
 #include "fastjet/contrib/EnergyCorrelator.hh"
 #include "fastjet/JadePlugin.hh"
 #include "fastjet/contrib/SoftKiller.hh"
+#include "DataFormats/PatCandidates/interface/Jet.h"
 
 #include "DataFormats/Math/interface/deltaR.h"
 
@@ -50,6 +51,7 @@ enum PdgId { p_unknown, p_d, p_u, p_s, p_c, p_b, p_t, p_bprime, p_tprime,
 };
 }
 
+template <typename T>
 class FatJetMatching {
 public:
   enum FatJetFlavor {
@@ -71,20 +73,16 @@ public:
 
 public:
   FatJetMatching() {}
-//   FatJetMatching(double jet_R, bool matchQuarks) : jetR_(jet_R), requiresQuarksContained_(matchQuarks) {}
-
   virtual ~FatJetMatching() {}
 
-//   std::pair<FatJetFlavor, const reco::GenParticle*> flavorJMAR(const fastjet::PseudoJet jet, const reco::GenParticleCollection& genParticles, double genRadius = 0.6);
-
-  std::pair<FatJetLabel, const reco::GenParticle*> flavorLabel(const fastjet::PseudoJet jet, const reco::GenParticleCollection& genParticles, double distR);
+  std::pair<int, const reco::GenParticle*> flavorLabel(const T jet, const reco::GenParticleCollection& genParticles, double distR);
 
 private:
-  std::pair<FatJetLabel, const reco::GenParticle*> top_label(const fastjet::PseudoJet jet, const reco::GenParticle *parton, double distR);
-  std::pair<FatJetLabel, const reco::GenParticle*> w_label(const fastjet::PseudoJet jet, const reco::GenParticle *parton, double distR);
-  std::pair<FatJetLabel, const reco::GenParticle*> z_label(const fastjet::PseudoJet jet, const reco::GenParticle *parton, double distR);
-  std::pair<FatJetLabel, const reco::GenParticle*> higgs_label(const fastjet::PseudoJet jet, const reco::GenParticle *parton, double distR);
-  std::pair<FatJetLabel, const reco::GenParticle*> qcd_label(const fastjet::PseudoJet jet, const reco::GenParticleCollection& genParticles, double distR);
+  std::pair<int, const reco::GenParticle*> top_label(const T jet, const reco::GenParticle *parton, double distR);
+  std::pair<int, const reco::GenParticle*> w_label(const T jet, const reco::GenParticle *parton, double distR);
+  std::pair<int, const reco::GenParticle*> z_label(const T jet, const reco::GenParticle *parton, double distR);
+  std::pair<int, const reco::GenParticle*> higgs_label(const T jet, const reco::GenParticle *parton, double distR);
+  std::pair<int, const reco::GenParticle*> qcd_label(const T jet, const reco::GenParticleCollection& genParticles, double distR);
 
 
 private:
@@ -93,17 +91,6 @@ private:
   const reco::GenParticle* getFinal(const reco::GenParticle* particle);
   bool isHadronic(const reco::GenParticle* particle) const;
   std::vector<const reco::GenParticle*> getDaughterQuarks(const reco::GenParticle* particle);
-//   template <typename T>
-//   double maxDeltaRToDaughterQuarks(const T *center, const reco::GenParticle* mother) const {
-//     // mother particle needs to be the final version before decay
-//     double maxDeltaR = -1;
-//     for (const auto &q : mother->daughterRefVector()){
-//       if (std::abs(q->pdgId()) > ParticleID::p_b) continue;
-//       double deltaR = reco::deltaR(q->p4(), center->p4());
-//       if (deltaR > maxDeltaR) maxDeltaR = deltaR;
-//     }
-//     return maxDeltaR > 0 ? maxDeltaR : 1e9;
-//   }
 
 private:
   double jetR_ = 0.8;
